@@ -1,7 +1,9 @@
 [package]
 name = "quantumfslib"
 version = "0.1.0"
-authors = ["Jose Molina Colmenero <jmolinacolmenero@gmail.com>"]
+authors = ["José Molina Colmenero <jmolinacolmenero@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+ipfsapi = "0.3.0"
+web3 = "0.8.0"
