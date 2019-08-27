@@ -7,3 +7,5 @@ edition = "2018"
 [dependencies]
 ipfsapi = "0.3.0"
 web3 = "0.8.0"
+regex = "1.2.1"
+readonly = "0.1.5"
