@@ -6,7 +6,6 @@ use web3::types::Address;
 use std::collections::HashMap;
 
 
-#[readonly::make]
 #[derive(Debug)]
 pub struct Repository {
     address: Address,

@@ -1,6 +1,5 @@
 use crate::types::ipfs::IpfsHash;
 
-#[readonly::make]
 #[derive(Debug)]
 pub struct Manifest {
     hash: IpfsHash,
