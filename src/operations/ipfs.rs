@@ -15,10 +15,14 @@ pub fn validate_ipfs_hash(hash: &str) -> bool {
     Regex::new(IPFS_HASH_PATTERN).unwrap().is_match(hash)
 }
 
+pub fn stream(ipfs_hash: IpfsHash) -> Result<impl Iterator<Item=u8>, QFSError> {
+    api()
+        .cat(ipfs_hash.to_string().as_str())
+        .map_err(QFSError::from)
+}
+
 pub fn fetch(ipfs_hash: IpfsHash) -> Result<Vec<u8>, QFSError> {
-    let bytes = api()
-        .cat(ipfs_hash.to_string().as_str())?
-        .collect();
+    let bytes = stream(ipfs_hash)?.collect();
     Ok(bytes)
 }
 

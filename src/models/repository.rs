@@ -22,7 +22,7 @@ impl Repository {
         let catalogs: HashMap<IpfsHash, Catalog> = HashMap::new();
         Self {
             address,
-            manifest ,
+            manifest,
             catalogs,
         }
     }
