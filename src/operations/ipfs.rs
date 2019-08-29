@@ -1,6 +1,3 @@
-extern crate ipfsapi;
-extern crate regex;
-
 use regex::Regex;
 use ipfsapi::IpfsApi;
 use crate::errors::errors::QFSError;
@@ -10,7 +7,7 @@ static IPFS_DEFAULT_URL: &str = "ipfs.io";
 static IPFS_DEFAULT_PORT: u16 = 80;
 
 #[readonly::make]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct IpfsHash {
     hash: String,
 }

@@ -1,5 +1,4 @@
-use std::fmt::{Display, Formatter};
-use std::fmt;
+use std::fmt::{Display, Formatter, Result};
 use std::error::Error as StdError;
 use failure::Error;
 
@@ -9,7 +8,7 @@ pub struct QFSError {
 }
 
 impl Display for QFSError {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "QuantumFS Error: \"{}\"", &self.details)
     }
 }
