@@ -5,6 +5,7 @@ extern crate ipfsapi;
 extern crate regex;
 extern crate serde_json;
 extern crate tempfile;
+extern crate sqlite;
 
 mod operations;
 mod models;
