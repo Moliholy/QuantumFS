@@ -1,0 +1,17 @@
+{
+  "name": "quantumfs",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "truffle-security": "^1.5.3",
+    "ethlint": "^1.2.4",
+    "remixd": "^0.1.8-alpha.6",
+    "truffle-assertions": "^0.9.1"
+  },
+  "scripts": {
+    "remix": "remixd -s . --remix-ide https://remix.ethereum.org",
+    "migrate": "rm -rf build/ && truffle migrate",
+    "lint": "solium -d contracts"
+  }
+}
