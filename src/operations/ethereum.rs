@@ -6,6 +6,7 @@ use web3::transports::Http;
 use std::fs;
 use serde_json;
 use serde_json::Value;
+use crate::types::ipfs::IpfsHash;
 
 
 static CONTRACT_ADDRESS: &str = "93319F0d80bF17A6689947386b36A7e76582500F";
@@ -36,10 +37,12 @@ lazy_static! {
     };
 }
 
-pub fn fetch_last_revision(address: Address) -> Result<String, Error> {
+pub fn fetch_last_revision(address: Address) -> Result<IpfsHash, Error> {
     CONTRACT
         .query("currentRevision", (address,), None, Options::default(), None)
         .wait()
+        .map(|hash: String| IpfsHash::new(hash.as_str())
+            .expect("Invalid IPFS hash stored in the contract"))
 }
 
 

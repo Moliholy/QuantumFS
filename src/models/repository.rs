@@ -1,16 +1,29 @@
 use crate::models::manifest::Manifest;
-use std::collections::HashMap;
-use crate::operations::ipfs::IpfsHash;
+use crate::types::ipfs::IpfsHash;
 use crate::models::catalog::Catalog;
+use crate::operations::ethereum;
+use web3::types::Address;
+use std::collections::HashMap;
+
 
 #[readonly::make]
 #[derive(Debug)]
 pub struct Repository {
-    address: String,
+    address: Address,
     manifest: Manifest,
     catalogs: HashMap<IpfsHash, Catalog>,
 }
 
 impl Repository {
-
+    pub fn load(address: Address) -> Self {
+        let last_revision = ethereum::fetch_last_revision(address)
+            .expect("Failure loading the repository");
+        let manifest = Manifest::new(last_revision);
+        let catalogs: HashMap<IpfsHash, Catalog> = HashMap::new();
+        Self {
+            address,
+            manifest ,
+            catalogs,
+        }
+    }
 }

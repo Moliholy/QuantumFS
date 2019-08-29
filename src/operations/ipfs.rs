@@ -1,25 +1,11 @@
 use regex::Regex;
 use ipfsapi::IpfsApi;
 use crate::errors::errors::QFSError;
+use crate::types::ipfs::IpfsHash;
 
 static IPFS_HASH_PATTERN: &str = "^Q[a-zA-z0-9]{45}$";
 static IPFS_DEFAULT_URL: &str = "ipfs.io";
 static IPFS_DEFAULT_PORT: u16 = 80;
-
-#[readonly::make]
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct IpfsHash {
-    hash: String,
-}
-
-impl IpfsHash {
-    pub fn new(hash: &str) -> Result<Self, QFSError> {
-        match validate_ipfs_hash(hash) {
-            true => Ok(Self { hash: String::from(hash) }),
-            false => Err(QFSError::new("Invalid IPFS hash")),
-        }
-    }
-}
 
 fn api() -> IpfsApi {
     IpfsApi::new(IPFS_DEFAULT_URL, IPFS_DEFAULT_PORT)
@@ -31,7 +17,7 @@ pub fn validate_ipfs_hash(hash: &str) -> bool {
 
 pub fn fetch(ipfs_hash: IpfsHash) -> Result<Vec<u8>, QFSError> {
     let bytes = api()
-        .cat(ipfs_hash.hash.as_str())?
+        .cat(ipfs_hash.to_string().as_str())?
         .collect();
     Ok(bytes)
 }

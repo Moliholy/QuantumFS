@@ -8,3 +8,4 @@ extern crate serde_json;
 mod operations;
 mod models;
 mod errors;
+mod types;

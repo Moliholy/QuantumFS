@@ -1,15 +1,14 @@
-use crate::operations::ipfs::IpfsHash;
+use crate::types::ipfs::IpfsHash;
 
 #[readonly::make]
 #[derive(Debug)]
 pub struct Manifest {
     hash: IpfsHash,
-    timestamp: u64,
 }
 
 impl Manifest {
-    pub fn new(hash: IpfsHash, timestamp: u64) -> Self {
-        Self { hash , timestamp }
+    pub fn new(hash: IpfsHash) -> Self {
+        Self { hash }
     }
 }
 
@@ -17,14 +16,12 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use crate::models::manifest::Manifest;
-    use std::time::SystemTime;
-    use crate::operations::ipfs::IpfsHash;
+    use crate::types::ipfs::IpfsHash;
     use crate::errors::errors::QFSError;
 
     fn instantiate(hash: &str) -> Result<Manifest, QFSError> {
-        let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         let hash = IpfsHash::new(hash)?;
-        Ok(Manifest::new(hash, now))
+        Ok(Manifest::new(hash))
     }
 
     #[test]
