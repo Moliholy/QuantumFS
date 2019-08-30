@@ -26,12 +26,12 @@ impl RevisionTag {
 
 #[derive(Debug)]
 pub struct Revision {
-    repository: &'static Repository,
+    repository: &'static mut Repository,
     tag: RevisionTag
 }
 
 impl Revision {
-    pub fn new(repository: &'static Repository, tag: RevisionTag) -> Self {
+    pub fn new(repository: &'static mut Repository, tag: RevisionTag) -> Self {
         Self {
             repository,
             tag

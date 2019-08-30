@@ -15,21 +15,18 @@ pub struct Repository {
 
 impl Repository {
     pub fn new(address: Address) -> Self {
-
-        let manifest = Manifest::new(address);
-        let catalogs: HashMap<IpfsHash, Catalog> = HashMap::new();
         Self {
-            manifest,
-            catalogs,
+            manifest: Manifest::new(address),
+            catalogs: HashMap::new(),
         }
     }
 
-    pub fn load_revision(&'static self, revision_number: u128) -> Result<Revision, Error> {
+    pub fn load_revision(&'static mut self, revision_number: u128) -> Result<Revision, Error> {
         let tag = self.manifest.fetch_revision(revision_number)?;
         Ok(Revision::new(self, tag))
     }
 
-    pub fn load_current_revision(&'static self) -> Result<Revision, Error> {
+    pub fn load_current_revision(&'static mut self) -> Result<Revision, Error> {
         let tag = self.manifest.fetch_last_revision()?;
         Ok(Revision::new(self, tag))
     }
