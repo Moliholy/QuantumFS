@@ -30,11 +30,6 @@ impl Manifest {
 mod tests {
     use crate::models::manifest::Manifest;
     use crate::operations::ethereum;
-    use web3::contract::Contract;
-    use web3::transports::Http;
-    use web3::types::Address;
-    use web3::futures::Future;
-    use std::fs;
 
     #[test]
     fn manifest_instantiation_should_work() {

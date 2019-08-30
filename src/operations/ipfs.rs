@@ -1,7 +1,10 @@
-use regex::Regex;
-use ipfsapi::IpfsApi;
 use crate::errors::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
+use regex::Regex;
+use ipfsapi::IpfsApi;
+use multihash;
+use base58;
+use base58::ToBase58;
 
 static IPFS_HASH_PATTERN: &str = "^[a-zA-z0-9]{46}$";
 static IPFS_DEFAULT_URL: &str = "ipfs.io";
@@ -13,6 +16,13 @@ fn api() -> IpfsApi {
 
 pub fn validate_ipfs_hash(hash: &str) -> bool {
     Regex::new(IPFS_HASH_PATTERN).unwrap().is_match(hash)
+}
+
+pub fn hash_bytes(bytes: &[u8]) -> String {
+    multihash::encode(multihash::Hash::SHA2256, bytes)
+        .unwrap()
+        .as_slice()
+        .to_base58()
 }
 
 pub fn stream(ipfs_hash: &IpfsHash) -> Result<impl Iterator<Item=u8>, QFSError> {
@@ -29,7 +39,7 @@ pub fn fetch(ipfs_hash: &IpfsHash) -> Result<Vec<u8>, QFSError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::operations::ipfs::{validate_ipfs_hash, fetch, IpfsHash};
+    use crate::operations::ipfs::{validate_ipfs_hash, fetch, IpfsHash, hash_bytes};
 
     #[test]
     fn validate_ipfs_hash_with_valid_hash_should_work() {
@@ -45,5 +55,11 @@ mod tests {
         assert!(result.is_ok());
         let content = String::from_utf8(result.unwrap()).unwrap();
         assert_eq!(content.as_str(), "Hello from IPFS Gateway Checker\n");
+    }
+
+    #[test]
+    fn test_ipfs_hashing_should_work() {
+        let result = hash_bytes(b"hello world");
+        assert_eq!(result, "QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4");
     }
 }
