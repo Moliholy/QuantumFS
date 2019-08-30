@@ -3,7 +3,7 @@ use ipfsapi::IpfsApi;
 use crate::errors::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
 
-static IPFS_HASH_PATTERN: &str = "^Q[a-zA-z0-9]{45}$";
+static IPFS_HASH_PATTERN: &str = "^[a-zA-z0-9]{46}$";
 static IPFS_DEFAULT_URL: &str = "ipfs.io";
 static IPFS_DEFAULT_PORT: u16 = 80;
 

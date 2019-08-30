@@ -7,9 +7,10 @@ use std::fs;
 use serde_json;
 use serde_json::Value;
 use crate::types::ipfs::IpfsHash;
+use std::convert::TryFrom;
 
 
-static CONTRACT_ADDRESS: &str = "93319F0d80bF17A6689947386b36A7e76582500F";
+static CONTRACT_ADDRESS: &str = "2d1FF468102Ba7742b29E72F1e652a465Ce527B1";
 static CONTRACT_ABI_PATH: &str = "./ethereum/build/contracts/QuantumFS.json";
 
 lazy_static! {
@@ -37,16 +38,39 @@ lazy_static! {
     };
 }
 
+pub fn coinbase() -> Address {
+    WEB3.eth().coinbase().wait()
+        .expect("Could not get the coinbase address. Check the connection with the ethereum node")
+}
+
+fn map_result(result: (String, U256)) -> (IpfsHash, u128) {
+    let number = result.1.as_u128();
+    let hash = IpfsHash::new(result.0.as_str())
+        .expect("Invalid IPFS hash stored in the contract");
+    (hash, number)
+}
+
+pub fn fetch_revision(address: Address, revision: u128) -> Result<(IpfsHash, u128), Error> {
+    let revision_uint = U256::try_from(revision).unwrap();
+    CONTRACT
+        .query("getRevision",
+               (revision_uint, ),
+               address,
+               Options::default(),
+               None)
+        .wait()
+        .map(map_result)
+}
+
 pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), Error> {
     CONTRACT
-        .query("currentRevision", (address,), None, Options::default(), None)
+        .query("currentRevision",
+               (),
+               address,
+               Options::default(),
+               None)
         .wait()
-        .map(|result: (String, U256)| {
-            let number = result.1.as_u128();
-            let hash = IpfsHash::new(result.0.as_str())
-                .expect("Invalid IPFS hash stored in the contract");
-            (hash, number)
-        })
+        .map(map_result)
 }
 
 
@@ -63,7 +87,8 @@ mod tests {
             .accounts()
             .wait()
             .unwrap();
-        let last_revision = fetch_last_revision(accounts[0]);
-        assert!(last_revision.is_err());
+        let result = fetch_last_revision(accounts[0]).unwrap();
+        assert_eq!(result.0.to_string().as_str(), "0000000000000000000000000000000000000000000000");
+        assert_eq!(result.1, 0);
     }
 }

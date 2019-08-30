@@ -11,7 +11,7 @@ contract QuantumFS
     {
         uint totalRevisions = totalRevisions();
         if (totalRevisions == 0) {
-            return ("", 0);
+            return ("0000000000000000000000000000000000000000000000", 0);
         }
 
         uint lastRevision = totalRevisions - 1;

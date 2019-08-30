@@ -1,14 +1,27 @@
-use crate::types::ipfs::IpfsHash;
+use crate::models::revision::RevisionTag;
+use crate::operations::ethereum;
+use web3::types::Address;
+use web3::contract::Error;
+
 
 #[derive(Debug)]
 pub struct Manifest {
-    hash: IpfsHash,
-    revision: u128
+    address: Address
 }
 
 impl Manifest {
-    pub fn new(hash: IpfsHash, revision: u128) -> Self {
-        Self { hash, revision }
+    pub fn new(address: Address) -> Self {
+        Self { address }
+    }
+
+    pub fn fetch_revision(&self, revision: u128) -> Result<RevisionTag, Error> {
+        let (hash, revision) = ethereum::fetch_revision(self.address, revision)?;
+        Ok(RevisionTag::new(hash, revision))
+    }
+
+    pub fn fetch_last_revision(&self) -> Result<RevisionTag, Error> {
+        let (hash, revision) = ethereum::fetch_last_revision(self.address)?;
+        Ok(RevisionTag::new(hash, revision))
     }
 }
 
@@ -16,25 +29,25 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use crate::models::manifest::Manifest;
-    use crate::types::ipfs::IpfsHash;
-    use crate::errors::errors::QFSError;
+    use crate::operations::ethereum;
+    use web3::contract::Contract;
+    use web3::transports::Http;
+    use web3::types::Address;
+    use web3::futures::Future;
+    use std::fs;
 
-    fn instantiate(hash: &str) -> Result<Manifest, QFSError> {
-        let hash = IpfsHash::new(hash)?;
-        Ok(Manifest::new(hash, 1))
+    #[test]
+    fn manifest_instantiation_should_work() {
+        let manifest = Manifest::new(ethereum::coinbase());
+        let tag = manifest.fetch_last_revision().unwrap();
+        assert_eq!(tag.hash().to_string().as_str(), "0000000000000000000000000000000000000000000000");
+        assert_eq!(tag.revision(), 0);
     }
 
     #[test]
-    fn manifest_instantiation_with_correct_hash_should_work() {
-        let hash = "QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4";
-        let manifest = instantiate(hash);
-        assert!(manifest.is_ok());
-    }
-
-    #[test]
-    fn manifest_instantiation_with_incorrect_hash_should_fail() {
-        let hash = "invalidhash";
-        let manifest = instantiate(hash);
-        assert!(manifest.is_err());
+    fn manifest_instantiation_with_invalid_revision_should_fail() {
+        let manifest = Manifest::new(ethereum::coinbase());
+        let tag = manifest.fetch_revision(100000);
+        assert!(tag.is_err());
     }
 }
