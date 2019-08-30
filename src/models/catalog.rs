@@ -1,9 +1,11 @@
-use crate::types::ipfs::IpfsHash;
-use crate::operations::ipfs;
-use tempfile::NamedTempFile;
-use std::io::Write;
-use sqlite::{Connection, OpenFlags};
 use std::fmt;
+use std::io::Write;
+
+use sqlite::{Connection, OpenFlags};
+use tempfile::NamedTempFile;
+
+use crate::operations::ipfs;
+use crate::types::ipfs::IpfsHash;
 
 pub struct Catalog {
     hash: IpfsHash,

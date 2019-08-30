@@ -1,8 +1,8 @@
+use web3::contract::Error;
+use web3::types::Address;
+
 use crate::models::revision::RevisionTag;
 use crate::operations::ethereum;
-use web3::types::Address;
-use web3::contract::Error;
-
 
 #[derive(Debug)]
 pub struct Manifest {

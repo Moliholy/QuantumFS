@@ -1,11 +1,12 @@
-use crate::models::manifest::Manifest;
-use crate::types::ipfs::IpfsHash;
-use crate::models::catalog::Catalog;
-use crate::models::revision::Revision;
-use web3::types::Address;
 use std::collections::HashMap;
-use web3::contract::Error;
 
+use web3::contract::Error;
+use web3::types::Address;
+
+use crate::models::catalog::Catalog;
+use crate::models::manifest::Manifest;
+use crate::models::revision::Revision;
+use crate::types::ipfs::IpfsHash;
 
 #[derive(Debug)]
 pub struct Repository {

@@ -1,13 +1,13 @@
+extern crate base58;
+extern crate ipfsapi;
 #[macro_use]
 extern crate lazy_static;
-extern crate web3;
-extern crate ipfsapi;
+extern crate multihash;
 extern crate regex;
 extern crate serde_json;
-extern crate tempfile;
 extern crate sqlite;
-extern crate multihash;
-extern crate base58;
+extern crate tempfile;
+extern crate web3;
 
 mod operations;
 mod models;

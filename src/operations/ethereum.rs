@@ -1,14 +1,15 @@
-use web3::Web3;
-use web3::futures::Future;
-use web3::types::{Address, U256};
-use web3::contract::{Contract, Error, Options};
-use web3::transports::Http;
+use std::convert::TryFrom;
 use std::fs;
+
 use serde_json;
 use serde_json::Value;
-use crate::types::ipfs::IpfsHash;
-use std::convert::TryFrom;
+use web3::contract::{Contract, Error, Options};
+use web3::futures::Future;
+use web3::transports::Http;
+use web3::types::{Address, U256};
+use web3::Web3;
 
+use crate::types::ipfs::IpfsHash;
 
 static CONTRACT_ADDRESS: &str = "2d1FF468102Ba7742b29E72F1e652a465Ce527B1";
 static CONTRACT_ABI_PATH: &str = "./ethereum/build/contracts/QuantumFS.json";
@@ -76,9 +77,10 @@ pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), Error> 
 
 #[cfg(test)]
 mod tests {
+    use web3::futures::Future;
+
     use crate::operations::ethereum::fetch_last_revision;
     use crate::operations::ethereum::WEB3;
-    use web3::futures::Future;
 
     #[test]
     fn fetch_last_revision_without_interaction_should_fail() {

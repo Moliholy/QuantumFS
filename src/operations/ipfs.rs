@@ -1,10 +1,11 @@
-use crate::errors::errors::QFSError;
-use crate::types::ipfs::IpfsHash;
-use regex::Regex;
-use ipfsapi::IpfsApi;
-use multihash;
 use base58;
 use base58::ToBase58;
+use ipfsapi::IpfsApi;
+use multihash;
+use regex::Regex;
+
+use crate::errors::errors::QFSError;
+use crate::types::ipfs::IpfsHash;
 
 static IPFS_HASH_PATTERN: &str = "^[a-zA-z0-9]{46}$";
 static IPFS_DEFAULT_URL: &str = "ipfs.io";
@@ -39,7 +40,7 @@ pub fn fetch(ipfs_hash: &IpfsHash) -> Result<Vec<u8>, QFSError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::operations::ipfs::{validate_ipfs_hash, fetch, IpfsHash, hash_bytes};
+    use crate::operations::ipfs::{fetch, hash_bytes, IpfsHash, validate_ipfs_hash};
 
     #[test]
     fn validate_ipfs_hash_with_valid_hash_should_work() {

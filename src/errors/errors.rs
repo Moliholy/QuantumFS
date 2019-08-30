@@ -1,5 +1,6 @@
-use std::fmt::{Display, Formatter, Result};
 use std::error::Error as StdError;
+use std::fmt::{Display, Formatter, Result};
+
 use failure::Error;
 
 #[derive(Debug)]
