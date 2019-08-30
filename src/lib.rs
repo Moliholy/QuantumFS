@@ -3,6 +3,7 @@ extern crate ipfsapi;
 #[macro_use]
 extern crate lazy_static;
 extern crate multihash;
+extern crate path_absolutize;
 extern crate regex;
 extern crate serde_json;
 extern crate sqlite;

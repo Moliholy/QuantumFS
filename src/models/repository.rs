@@ -31,4 +31,20 @@ impl Repository {
         let tag = self.manifest.fetch_last_revision()?;
         Ok(Revision::new(self, tag))
     }
+
+    pub fn retrieve_and_open_catalog(&mut self, hash: &IpfsHash) -> &Catalog {
+        let catalog = Catalog::load(hash);
+        self.catalogs.insert(
+            hash.clone(),
+            catalog
+        );
+        &self.catalogs[&hash]
+    }
+
+    pub fn retrieve_catalog(&mut self, hash: &IpfsHash) -> &Catalog {
+        if self.catalogs.contains_key(&hash) {
+            return &self.catalogs[&hash];
+        }
+        self.retrieve_and_open_catalog(hash)
+    }
 }

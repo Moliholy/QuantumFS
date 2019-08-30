@@ -3,7 +3,7 @@ use core::fmt;
 use crate::errors::errors::QFSError;
 use crate::operations::ipfs::validate_ipfs_hash;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct IpfsHash {
     hash: String,
 }
