@@ -15,9 +15,9 @@ pub struct Repository {
 
 impl Repository {
     pub fn load(address: Address) -> Self {
-        let last_revision = ethereum::fetch_last_revision(address)
+        let (hash, revision) = ethereum::fetch_last_revision(address)
             .expect("Failure loading the repository");
-        let manifest = Manifest::new(last_revision);
+        let manifest = Manifest::new(hash, revision);
         let catalogs: HashMap<IpfsHash, Catalog> = HashMap::new();
         Self {
             address,

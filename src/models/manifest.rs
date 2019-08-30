@@ -3,11 +3,12 @@ use crate::types::ipfs::IpfsHash;
 #[derive(Debug)]
 pub struct Manifest {
     hash: IpfsHash,
+    revision: u128
 }
 
 impl Manifest {
-    pub fn new(hash: IpfsHash) -> Self {
-        Self { hash }
+    pub fn new(hash: IpfsHash, revision: u128) -> Self {
+        Self { hash, revision }
     }
 }
 
@@ -20,7 +21,7 @@ mod tests {
 
     fn instantiate(hash: &str) -> Result<Manifest, QFSError> {
         let hash = IpfsHash::new(hash)?;
-        Ok(Manifest::new(hash))
+        Ok(Manifest::new(hash, 1))
     }
 
     #[test]

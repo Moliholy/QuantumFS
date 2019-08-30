@@ -7,10 +7,12 @@ contract QuantumFS
     function currentRevision()
       public
       view
-      returns (string memory)
+      returns (string memory, uint)
     {
         uint totalRevisions = totalRevisions();
-        require(totalRevisions > 0, "Uninitialized file system");
+        if (totalRevisions == 0) {
+            return ("", 0);
+        }
 
         uint lastRevision = totalRevisions - 1;
         return getRevision(lastRevision);
@@ -27,10 +29,11 @@ contract QuantumFS
     function getRevision(uint _revision)
       public
       view
-      returns (string memory)
+      returns (string memory, uint)
     {
-        require(_revision < totalRevisions(), "Invalid revision");
-        return fileSystems[msg.sender][_revision];
+        require(_revision > 0, "Revision number must be greater than zero");
+        require(_revision <= totalRevisions(), "Invalid revision");
+        return (fileSystems[msg.sender][_revision - 1], _revision);
     }
 
     function addRevision(string calldata _hash)

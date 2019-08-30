@@ -1,6 +1,6 @@
 use web3::Web3;
 use web3::futures::Future;
-use web3::types::Address;
+use web3::types::{Address, U256};
 use web3::contract::{Contract, Error, Options};
 use web3::transports::Http;
 use std::fs;
@@ -37,12 +37,16 @@ lazy_static! {
     };
 }
 
-pub fn fetch_last_revision(address: Address) -> Result<IpfsHash, Error> {
+pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), Error> {
     CONTRACT
         .query("currentRevision", (address,), None, Options::default(), None)
         .wait()
-        .map(|hash: String| IpfsHash::new(hash.as_str())
-            .expect("Invalid IPFS hash stored in the contract"))
+        .map(|result: (String, U256)| {
+            let number = result.1.as_u128();
+            let hash = IpfsHash::new(result.0.as_str())
+                .expect("Invalid IPFS hash stored in the contract");
+            (hash, number)
+        })
 }
 
 
