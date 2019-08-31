@@ -3,13 +3,14 @@ use std::fs;
 
 use serde_json;
 use serde_json::Value;
-use web3::contract::{Contract, Error, Options};
+use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::Http;
 use web3::types::{Address, U256};
 use web3::Web3;
 
 use crate::types::ipfs::IpfsHash;
+use crate::errors::errors::QFSError;
 
 static CONTRACT_ADDRESS: &str = "2d1FF468102Ba7742b29E72F1e652a465Ce527B1";
 static CONTRACT_ABI_PATH: &str = "./ethereum/build/contracts/QuantumFS.json";
@@ -51,7 +52,7 @@ fn map_result(result: (String, U256)) -> (IpfsHash, u128) {
     (hash, number)
 }
 
-pub fn fetch_revision(address: Address, revision: u128) -> Result<(IpfsHash, u128), Error> {
+pub fn fetch_revision(address: Address, revision: u128) -> Result<(IpfsHash, u128), QFSError> {
     let revision_uint = U256::try_from(revision).unwrap();
     CONTRACT
         .query("getRevision",
@@ -60,10 +61,11 @@ pub fn fetch_revision(address: Address, revision: u128) -> Result<(IpfsHash, u12
                Options::default(),
                None)
         .wait()
+        .map_err(QFSError::from)
         .map(map_result)
 }
 
-pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), Error> {
+pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), QFSError> {
     CONTRACT
         .query("currentRevision",
                (),
@@ -71,6 +73,7 @@ pub fn fetch_last_revision(address: Address) -> Result<(IpfsHash, u128), Error> 
                Options::default(),
                None)
         .wait()
+        .map_err(QFSError::from)
         .map(map_result)
 }
 

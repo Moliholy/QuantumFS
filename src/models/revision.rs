@@ -2,6 +2,7 @@ use crate::models::catalog::Catalog;
 use crate::models::repository::Repository;
 use crate::types::ipfs::IpfsHash;
 use crate::models::directoryentry::DirectoryEntry;
+use crate::errors::errors::QFSError;
 
 #[derive(Debug)]
 pub struct RevisionTag {
@@ -48,7 +49,7 @@ impl Revision {
         self.tag.revision
     }
 
-    pub fn lookup(&mut self, path: &str) -> DirectoryEntry {
+    pub fn lookup(&mut self, path: &str) -> Result<DirectoryEntry, QFSError> {
         let mut path = path;
         if path == "/" {
             path = "";
@@ -74,5 +75,14 @@ impl Revision {
                 Some(nested_reference) => hash = nested_reference.hash().clone()
             };
         }
+    }
+
+    pub fn list_directory(&mut self, path: &str) -> Result<Vec<DirectoryEntry>, QFSError> {
+        let dirent = self.lookup(path)?;
+        if dirent.is_directory() {
+            let catalog = self.retrieve_catalog_for_path(path);
+            return catalog.list_directory(path);
+        }
+        Err(QFSError::new(format!("{} is not a directory", path).as_str()))
     }
 }

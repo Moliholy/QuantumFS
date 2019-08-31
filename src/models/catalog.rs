@@ -9,6 +9,7 @@ use crate::models::directoryentry::DirectoryEntry;
 use crate::operations::ipfs;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
+use crate::errors::errors::QFSError;
 
 lazy_static! {
     static ref LISTING_QUERY: String = format!("SELECT {} \
@@ -126,7 +127,7 @@ impl Catalog {
         }
     }
 
-    pub fn find_directory_entry(&self, path: &str) -> DirectoryEntry {
+    pub fn find_directory_entry(&self, path: &str) -> Result<DirectoryEntry, QFSError> {
         let path = path::canonicalize_path(path);
         let real_path = path.as_str();
         let hash = ipfs::hash_bytes(real_path.as_bytes());
@@ -134,17 +135,21 @@ impl Catalog {
             .prepare(FIND_PATH.as_str())
             .unwrap();
         statement.bind(1, hash.as_str()).unwrap();
-        statement.next().unwrap();
-        DirectoryEntry {
-            path: IpfsHash::new(statement.read::<String>(0).unwrap().as_str()).unwrap(),
-            parent: IpfsHash::new(statement.read::<String>(1).unwrap().as_str()).unwrap(),
-            hash: IpfsHash::new(statement.read::<String>(3).unwrap().as_str()).unwrap(),
-            flags: statement.read::<i64>(4).unwrap(),
-            size: statement.read::<i64>(5).unwrap(),
-            mode: statement.read::<i64>(6).unwrap(),
-            mtime: statement.read::<i64>(7).unwrap(),
-            name: statement.read::<String>(8).unwrap(),
-            symlink: statement.read::<String>(9).unwrap(),
+        statement.next().map_err(QFSError::from)?;
+        Ok(DirectoryEntry::from_sql_statement(&statement))
+    }
+
+    pub fn list_directory(&self, path: &str) -> Result<Vec<DirectoryEntry>, QFSError> {
+        let real_path = path::canonicalize_path(path);
+        let mut dirents = Vec::new();
+        let hash = ipfs::hash_bytes(real_path.as_bytes());
+        let mut statement = self.connection
+            .prepare(LISTING_QUERY.as_str())
+            .unwrap();
+        statement.bind(1, hash.as_str()).unwrap();
+        while let State::Row = statement.next().map_err(QFSError::from)? {
+            dirents.push(DirectoryEntry::from_sql_statement(&statement));
         }
+        Ok(dirents)
     }
 }

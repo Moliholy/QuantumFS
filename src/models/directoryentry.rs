@@ -1,6 +1,8 @@
 use crate::types::ipfs::IpfsHash;
+use sqlite::Statement;
 
 pub static DATABASE_FIELDS: &str = "path, parent, hash, flags, size, mode, mtime, name, symlink";
+
 
 #[derive(Debug)]
 pub struct DirectoryEntry {
@@ -13,4 +15,44 @@ pub struct DirectoryEntry {
     pub mtime: i64,
     pub name: String,
     pub symlink: String,
+}
+
+impl DirectoryEntry {
+    pub fn from_sql_statement(statement: &Statement) -> Self {
+        DirectoryEntry {
+            path: IpfsHash::new(statement.read::<String>(0).unwrap().as_str()).unwrap(),
+            parent: IpfsHash::new(statement.read::<String>(1).unwrap().as_str()).unwrap(),
+            hash: IpfsHash::new(statement.read::<String>(3).unwrap().as_str()).unwrap(),
+            flags: statement.read::<i64>(4).unwrap(),
+            size: statement.read::<i64>(5).unwrap(),
+            mode: statement.read::<i64>(6).unwrap(),
+            mtime: statement.read::<i64>(7).unwrap(),
+            name: statement.read::<String>(8).unwrap(),
+            symlink: statement.read::<String>(9).unwrap(),
+        }
+    }
+
+    pub fn is_directory(&self) -> bool {
+        (self.flags & flags::DIRECTORY) > 0
+    }
+
+    pub fn is_file(&self) -> bool {
+        (self.flags & flags::FILE) > 0
+    }
+
+    pub fn is_symlink(&self) -> bool {
+        (self.flags & flags::LINK) > 0
+    }
+
+    pub fn is_nested_catalog_root(&self) -> bool {
+        (self.flags & flags::NESTED_CATALOG_ROOT) > 0
+    }
+}
+
+
+pub mod flags {
+    pub static DIRECTORY: i64 = 1;
+    pub static FILE: i64 = 4;
+    pub static LINK: i64 = 8;
+    pub static NESTED_CATALOG_ROOT: i64 = 32;
 }

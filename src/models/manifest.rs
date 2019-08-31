@@ -1,8 +1,8 @@
-use web3::contract::Error;
 use web3::types::Address;
 
 use crate::models::revision::RevisionTag;
 use crate::operations::ethereum;
+use crate::errors::errors::QFSError;
 
 #[derive(Debug)]
 pub struct Manifest {
@@ -14,12 +14,12 @@ impl Manifest {
         Self { address }
     }
 
-    pub fn fetch_revision(&self, revision: u128) -> Result<RevisionTag, Error> {
+    pub fn fetch_revision(&self, revision: u128) -> Result<RevisionTag, QFSError> {
         let (hash, revision) = ethereum::fetch_revision(self.address, revision)?;
         Ok(RevisionTag::new(hash, revision))
     }
 
-    pub fn fetch_last_revision(&self) -> Result<RevisionTag, Error> {
+    pub fn fetch_last_revision(&self) -> Result<RevisionTag, QFSError> {
         let (hash, revision) = ethereum::fetch_last_revision(self.address)?;
         Ok(RevisionTag::new(hash, revision))
     }

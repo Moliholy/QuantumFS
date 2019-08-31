@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use web3::contract::Error;
 use web3::types::Address;
 
 use crate::models::catalog::Catalog;
 use crate::models::manifest::Manifest;
 use crate::models::revision::Revision;
 use crate::types::ipfs::IpfsHash;
+use crate::errors::errors::QFSError;
 
 #[derive(Debug)]
 pub struct Repository {
@@ -22,12 +22,12 @@ impl Repository {
         }
     }
 
-    pub fn load_revision(&'static mut self, revision_number: u128) -> Result<Revision, Error> {
+    pub fn load_revision(&'static mut self, revision_number: u128) -> Result<Revision, QFSError> {
         let tag = self.manifest.fetch_revision(revision_number)?;
         Ok(Revision::new(self, tag))
     }
 
-    pub fn load_current_revision(&'static mut self) -> Result<Revision, Error> {
+    pub fn load_current_revision(&'static mut self) -> Result<Revision, QFSError> {
         let tag = self.manifest.fetch_last_revision()?;
         Ok(Revision::new(self, tag))
     }
