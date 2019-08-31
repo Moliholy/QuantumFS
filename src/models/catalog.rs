@@ -12,18 +12,43 @@ use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
 
 lazy_static! {
-    static ref LISTING_QUERY: String = format!("SELECT {} \
+    static ref LISTING_QUERY: String = format!(
+    "SELECT {} \
         FROM catalog \
         WHERE parent = ? \
-        ORDER BY name ASC;", directoryentry::DATABASE_FIELDS);
+        ORDER BY name ASC;", directoryentry::DATABASE_FIELDS)
+        ;
 
-    static ref FIND_PATH: String = format!("SELECT {} \
+    static ref FIND_PATH: String = format!(
+    "SELECT {} \
         FROM catalog \
         WHERE path = ? \
         ORDER BY name ASC \
-        LIMIT 1;", directoryentry::DATABASE_FIELDS);
+        LIMIT 1;", directoryentry::DATABASE_FIELDS
+    );
 
-    static ref LIST_NESTED: String = String::from("SELECT path, hash, size FROM nested_catalogs;");
+    static ref LIST_NESTED: String = String::from(
+    "SELECT path, hash, size \
+        FROM nested_catalogs;"
+    );
+    static ref CREATE_CATALOG: String = String::from(
+    "CREATE TABLE catalog
+        (path TEXT, parent TEXT,\
+        hardlinks INTEGER, hash BLOB, size INTEGER, mode INTEGER, mtime INTEGER,\
+        flags INTEGER, name TEXT, symlink TEXT, uid INTEGER, gid INTEGER, \
+        xattr BLOB, \
+        CONSTRAINT pk_catalog PRIMARY KEY (path));"
+    );
+
+    static ref CREATE_INDEX: String = String::from(
+    "CREATE INDEX idx_catalog_parent \
+        ON catalog (parent);"
+    );
+
+    static ref CREATE_NESTED_CATALOGS: String = String::from(
+    "CREATE TABLE nested_catalogs (path TEXT, hash TEXT, size INTEGER, \
+        CONSTRAINT pk_nested_catalogs PRIMARY KEY (path));"
+    );
 }
 
 
@@ -63,7 +88,7 @@ pub struct Catalog {
 
 impl fmt::Debug for Catalog {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.hash.to_string().as_str())
+        write!(f, "Catalog<{}>", self.hash.to_string().as_str())
     }
 }
 
@@ -73,8 +98,10 @@ impl Catalog {
         let connection = Connection::open_with_flags(
             tmpfile.path(),
             OpenFlags::new(),
-        ).expect("Error creating the database file");
-        connection.execute("").unwrap();
+        ).map_err(QFSError::from)?;
+        connection.execute(CREATE_CATALOG.as_str()).unwrap();
+        connection.execute(CREATE_INDEX.as_str()).unwrap();
+        connection.execute(CREATE_NESTED_CATALOGS.as_str()).unwrap();
         tmpfile.flush()?;
         let file = tmpfile.as_file();
         let hash = ipfs::add(&file)?;
