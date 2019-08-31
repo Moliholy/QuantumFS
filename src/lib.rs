@@ -10,7 +10,7 @@ extern crate sqlite;
 extern crate tempfile;
 extern crate web3;
 
-mod operations;
-mod models;
-mod errors;
-mod types;
+pub mod operations;
+pub mod models;
+pub mod errors;
+pub mod types;

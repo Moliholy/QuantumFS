@@ -47,4 +47,8 @@ impl Repository {
         }
         self.retrieve_and_open_catalog(hash)
     }
+
+    pub fn get_opened_catalog(&self, hash: &IpfsHash) -> Option<&Catalog> {
+        self.catalogs.get(hash)
+    }
 }

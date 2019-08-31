@@ -53,7 +53,7 @@ impl Revision {
         if path == "/" {
             path = "";
         }
-        let mut best_fit = self.retrieve_catalog_for_path(path);
+        let best_fit = self.retrieve_catalog_for_path(path);
         best_fit.find_directory_entry(path)
     }
 
@@ -67,9 +67,12 @@ impl Revision {
     }
 
     pub fn retrieve_catalog_for_path(&mut self, path: &str) -> &Catalog {
-        let catalog = self.retrieve_root_catalog();
+        let mut hash = self.hash().clone();
         loop {
-            let nested_references = catalog.find_nested_for_path(path);
+            match self.retrieve_catalog(&hash).find_nested_for_path(path) {
+                None => return self.repository.get_opened_catalog(&hash).unwrap(),
+                Some(nested_reference) => hash = nested_reference.hash().clone()
+            };
         }
     }
 }

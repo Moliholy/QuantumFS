@@ -8,7 +8,7 @@ pub fn canonicalize_path(path: &str) -> String {
     }
 
     match Path::new(path).absolutize() {
-        Err(error) => String::from(""),
+        Err(_) => String::from(""),
         Ok(result) => String::from(result.to_str().unwrap())
     }
 }
