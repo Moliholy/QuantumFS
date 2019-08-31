@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use failure::Error as FailureError;
 use sqlite::Error as SqliteError;
+use std::io::Error as IOError;
 use web3::contract::Error as ContractError;
 
 #[derive(Debug)]
@@ -36,6 +37,12 @@ impl From<FailureError> for QFSError {
 
 impl From<ContractError> for QFSError {
     fn from(err: ContractError) -> Self {
+        QFSError { details: format!("{}", err) }
+    }
+}
+
+impl From<IOError> for QFSError {
+    fn from(err: IOError) -> Self {
         QFSError { details: format!("{}", err) }
     }
 }

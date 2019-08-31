@@ -39,7 +39,7 @@ impl CatalogReference {
         Self {
             path: path.clone(),
             hash: hash.clone(),
-            size
+            size,
         }
     }
 
@@ -68,20 +68,35 @@ impl fmt::Debug for Catalog {
 }
 
 impl Catalog {
-    pub fn load(hash: &IpfsHash) -> Self {
-        let db_bytes = ipfs::fetch(hash)
-            .expect("Could not fetch the SQLite database");
+    pub fn new() -> Result<Self, QFSError> {
+        let mut tmpfile = NamedTempFile::new().unwrap();
+        let connection = Connection::open_with_flags(
+            tmpfile.path(),
+            OpenFlags::new(),
+        ).expect("Error creating the database file");
+        connection.execute("").unwrap();
+        tmpfile.flush()?;
+        let file = tmpfile.as_file();
+        let hash = ipfs::add(&file)?;
+        Ok(Self {
+            connection,
+            hash,
+        })
+    }
+
+    pub fn load(hash: &IpfsHash) -> Result<Self, QFSError> {
+        let db_bytes = ipfs::fetch(hash)?;
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(&db_bytes)
-            .expect("Error writing the catalog in the temporary file");
+            .map_err(QFSError::from)?;
         let connection = Connection::open_with_flags(
             tmpfile.path(),
             OpenFlags::new().set_read_only(),
-        ).expect("Error opening the database file");
-        Self {
+        ).map_err(QFSError::from)?;
+        Ok(Self {
             hash: hash.clone(),
             connection,
-        }
+        })
     }
 
     pub fn hash(&self) -> &IpfsHash {

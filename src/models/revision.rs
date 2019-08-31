@@ -42,6 +42,16 @@ impl Revision {
         }
     }
 
+    pub fn genesis(repository: &'static mut Repository) -> Result<Self, QFSError> {
+        let catalog = Catalog::new()?;
+        let hash = catalog.hash().clone();
+        repository.add_catalog(catalog);
+        Ok(Self {
+            repository,
+            tag: RevisionTag::new(&hash, 0)
+        })
+    }
+
     pub fn hash(&self) -> &IpfsHash {
         &self.tag.hash
     }
@@ -55,24 +65,24 @@ impl Revision {
         if path == "/" {
             path = "";
         }
-        let best_fit = self.retrieve_catalog_for_path(path);
+        let best_fit = self.retrieve_catalog_for_path(path)?;
         best_fit.find_directory_entry(path)
     }
 
-    pub fn retrieve_catalog(&mut self, hash: &IpfsHash) -> &Catalog {
+    pub fn retrieve_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
         self.repository.retrieve_catalog(hash)
     }
 
-    pub fn retrieve_root_catalog(&mut self) -> &Catalog {
+    pub fn retrieve_root_catalog(&mut self) -> Result<&Catalog, QFSError> {
         let hash = self.hash().clone();
         self.retrieve_catalog(&hash)
     }
 
-    pub fn retrieve_catalog_for_path(&mut self, path: &str) -> &Catalog {
+    pub fn retrieve_catalog_for_path(&mut self, path: &str) -> Result<&Catalog, QFSError> {
         let mut hash = self.hash().clone();
         loop {
-            match self.retrieve_catalog(&hash).find_nested_for_path(path) {
-                None => return self.repository.get_opened_catalog(&hash).unwrap(),
+            match self.retrieve_catalog(&hash)?.find_nested_for_path(path) {
+                None => return Ok(self.repository.get_opened_catalog(&hash).unwrap()),
                 Some(nested_reference) => hash = nested_reference.hash().clone()
             };
         }
@@ -81,7 +91,7 @@ impl Revision {
     pub fn list_directory(&mut self, path: &str) -> Result<Vec<DirectoryEntry>, QFSError> {
         let dirent = self.lookup(path)?;
         if dirent.is_directory() {
-            let catalog = self.retrieve_catalog_for_path(path);
+            let catalog = self.retrieve_catalog_for_path(path)?;
             return catalog.list_directory(path);
         }
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))

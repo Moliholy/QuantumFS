@@ -6,6 +6,7 @@ use regex::Regex;
 
 use crate::errors::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
+use std::fs::File;
 
 static IPFS_HASH_PATTERN: &str = "^[a-zA-z0-9]{46}$";
 static IPFS_DEFAULT_URL: &str = "ipfs.io";
@@ -35,6 +36,13 @@ pub fn stream(ipfs_hash: &IpfsHash) -> Result<impl Iterator<Item=u8>, QFSError> 
 pub fn fetch(ipfs_hash: &IpfsHash) -> Result<Vec<u8>, QFSError> {
     let bytes = stream(ipfs_hash)?.collect();
     Ok(bytes)
+}
+
+pub fn add(file: &File) -> Result<IpfsHash, QFSError> {
+    api()
+        .block_put(file.try_clone()?)
+        .map_err(QFSError::from)
+        .map(|hash| IpfsHash::new(hash.as_str()).unwrap())
 }
 
 
