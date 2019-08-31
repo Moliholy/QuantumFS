@@ -1,8 +1,8 @@
 use web3::types::Address;
 
+use crate::errors::errors::QFSError;
 use crate::models::revision::RevisionTag;
 use crate::operations::ethereum;
-use crate::errors::errors::QFSError;
 
 #[derive(Debug)]
 pub struct Manifest {

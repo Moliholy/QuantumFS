@@ -1,5 +1,6 @@
-use crate::types::ipfs::IpfsHash;
 use sqlite::Statement;
+
+use crate::types::ipfs::IpfsHash;
 
 pub static DATABASE_FIELDS: &str = "path, parent, hash, flags, size, mode, mtime, name, symlink";
 

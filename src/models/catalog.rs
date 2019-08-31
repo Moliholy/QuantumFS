@@ -4,12 +4,12 @@ use std::io::Write;
 use sqlite::{Connection, OpenFlags, State};
 use tempfile::NamedTempFile;
 
+use crate::errors::errors::QFSError;
 use crate::models::directoryentry;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::operations::ipfs;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
-use crate::errors::errors::QFSError;
 
 lazy_static! {
     static ref LISTING_QUERY: String = format!("SELECT {} \
