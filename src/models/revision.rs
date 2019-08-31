@@ -3,6 +3,7 @@ use crate::models::repository::Repository;
 use crate::types::ipfs::IpfsHash;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::errors::errors::QFSError;
+use crate::operations::ipfs;
 
 #[derive(Debug)]
 pub struct RevisionTag {
@@ -11,9 +12,9 @@ pub struct RevisionTag {
 }
 
 impl RevisionTag {
-    pub fn new(hash: IpfsHash, revision: u128) -> Self {
+    pub fn new(hash: &IpfsHash, revision: u128) -> Self {
         Self {
-            hash,
+            hash: hash.clone(),
             revision
         }
     }
@@ -84,5 +85,10 @@ impl Revision {
             return catalog.list_directory(path);
         }
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))
+    }
+
+    pub fn get_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
+        let result = self.lookup(path)?;
+        ipfs::fetch(&result.hash)
     }
 }

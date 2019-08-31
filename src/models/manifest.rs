@@ -16,12 +16,12 @@ impl Manifest {
 
     pub fn fetch_revision(&self, revision: u128) -> Result<RevisionTag, QFSError> {
         let (hash, revision) = ethereum::fetch_revision(self.address, revision)?;
-        Ok(RevisionTag::new(hash, revision))
+        Ok(RevisionTag::new(&hash, revision))
     }
 
     pub fn fetch_last_revision(&self) -> Result<RevisionTag, QFSError> {
         let (hash, revision) = ethereum::fetch_last_revision(self.address)?;
-        Ok(RevisionTag::new(hash, revision))
+        Ok(RevisionTag::new(&hash, revision))
     }
 }
 
