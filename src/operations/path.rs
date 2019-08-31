@@ -25,9 +25,9 @@ mod tests {
 
     #[test]
     fn test_canonicalize_path() {
-        assert_eq!("/1/2/3/4/..", canonicalize_path("/1/2/3"));
-        assert_eq!("/1/2/3/4/.", canonicalize_path("/1/2/3/4"));
-        assert_eq!("2/3/4/..", canonicalize_path("2/3"));
+        assert_eq!("/1/2/3", canonicalize_path("/1/2/3/4/.."));
+        assert_eq!("/1/2/3/4", canonicalize_path("/1/2/3/4/."));
+        assert_eq!("", canonicalize_path("/"));
     }
 
     #[test]
