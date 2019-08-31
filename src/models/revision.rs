@@ -1,4 +1,4 @@
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::models::repository::Repository;

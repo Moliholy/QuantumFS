@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use web3::types::Address;
 
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::manifest::Manifest;
 use crate::models::revision::Revision;

@@ -9,7 +9,7 @@ use web3::transports::Http;
 use web3::types::{Address, U256};
 use web3::Web3;
 
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
 
 static CONTRACT_ADDRESS: &str = "2d1FF468102Ba7742b29E72F1e652a465Ce527B1";

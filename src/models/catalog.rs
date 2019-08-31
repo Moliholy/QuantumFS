@@ -4,7 +4,7 @@ use std::io::Write;
 use sqlite::{Connection, OpenFlags, State};
 use tempfile::NamedTempFile;
 
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::models::directoryentry;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::operations::ipfs;

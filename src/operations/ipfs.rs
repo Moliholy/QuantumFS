@@ -4,7 +4,7 @@ use ipfsapi::IpfsApi;
 use multihash;
 use regex::Regex;
 
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
 use std::fs::File;
 

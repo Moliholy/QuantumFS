@@ -1,6 +1,6 @@
 use web3::types::Address;
 
-use crate::errors::errors::QFSError;
+use crate::errors::QFSError;
 use crate::models::revision::RevisionTag;
 use crate::operations::ethereum;
 
