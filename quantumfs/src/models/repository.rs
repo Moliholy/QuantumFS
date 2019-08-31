@@ -15,9 +15,9 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub fn new(address: Address) -> Self {
+    pub fn new(client_address: Address, contract_address: Address) -> Self {
         Self {
-            manifest: Manifest::new(address),
+            manifest: Manifest::new(client_address, contract_address),
             catalogs: HashMap::new(),
         }
     }
