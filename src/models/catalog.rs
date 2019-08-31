@@ -95,10 +95,8 @@ impl fmt::Debug for Catalog {
 impl Catalog {
     pub fn new() -> Result<Self, QFSError> {
         let mut tmpfile = NamedTempFile::new().unwrap();
-        let connection = Connection::open_with_flags(
-            tmpfile.path(),
-            OpenFlags::new(),
-        ).map_err(QFSError::from)?;
+        let connection = Connection::open(tmpfile.path())
+            .map_err(QFSError::from)?;
         connection.execute(CREATE_CATALOG.as_str()).unwrap();
         connection.execute(CREATE_INDEX.as_str()).unwrap();
         connection.execute(CREATE_NESTED_CATALOGS.as_str()).unwrap();
@@ -193,5 +191,17 @@ impl Catalog {
             dirents.push(DirectoryEntry::from_sql_statement(&statement));
         }
         Ok(dirents)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::models::catalog::Catalog;
+
+    #[test]
+    fn test_create_catalog_should_work() {
+        let result = Catalog::new();
+        assert!(result.is_ok());
     }
 }
