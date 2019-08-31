@@ -15,7 +15,7 @@ impl RevisionTag {
     pub fn new(hash: &IpfsHash, revision: u128) -> Self {
         Self {
             hash: hash.clone(),
-            revision
+            revision,
         }
     }
 
@@ -31,14 +31,14 @@ impl RevisionTag {
 #[derive(Debug)]
 pub struct Revision {
     repository: &'static mut Repository,
-    tag: RevisionTag
+    tag: RevisionTag,
 }
 
 impl Revision {
     pub fn new(repository: &'static mut Repository, tag: RevisionTag) -> Self {
         Self {
             repository,
-            tag
+            tag,
         }
     }
 
@@ -87,8 +87,13 @@ impl Revision {
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))
     }
 
-    pub fn get_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
+    pub fn stream_file(&mut self, path: &str) -> Result<impl Iterator<Item=u8>, QFSError> {
         let result = self.lookup(path)?;
-        ipfs::fetch(&result.hash)
+        ipfs::stream(&result.hash)
+    }
+
+    pub fn fetch_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
+        let bytes = self.stream_file(path)?.collect();
+        Ok(bytes)
     }
 }
