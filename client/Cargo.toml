@@ -1,10 +1,13 @@
 [package]
-name = "quantumfs-client"
+name = "qfs"
+description = "QuantumFS client"
 version = "0.1.0"
 authors = ["José Molina Colmenero <jmolinacolmenero"]
 edition = "2018"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 quantumfs = { path = "../quantumfs" }
+clap = {version = "2.33.0", features = ["yaml"]}

@@ -1,5 +1,6 @@
 [package]
 name = "quantumfs"
+description = "Highly-distributed censorship-resistant ethereum-based file system"
 version = "0.1.0"
 authors = ["José Molina Colmenero <jmolinacolmenero@gmail.com>"]
 edition = "2018"
