@@ -3,6 +3,7 @@ use crate::models::catalog::Catalog;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::models::repository::Repository;
 use crate::operations::ipfs;
+use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
 
 #[derive(Debug)]
@@ -61,10 +62,8 @@ impl Revision {
     }
 
     pub fn lookup(&mut self, path: &str) -> Result<DirectoryEntry, QFSError> {
-        let mut path = path;
-        if path == "/" {
-            path = "";
-        }
+        let path = path::canonicalize_path(path);
+        let path = path.as_str();
         let best_fit = self.retrieve_catalog_for_path(path)?;
         best_fit.find_directory_entry(path)
     }
@@ -79,7 +78,8 @@ impl Revision {
     }
 
     pub fn retrieve_catalog_for_path(&mut self, path: &str) -> Result<&Catalog, QFSError> {
-        let mut hash = self.hash().clone();
+        let root_catalog_hash = self.hash();
+        let mut hash = root_catalog_hash.clone();
         loop {
             match self.retrieve_catalog(&hash)?.find_nested_for_path(path) {
                 None => return Ok(self.repository.get_opened_catalog(&hash).unwrap()),
