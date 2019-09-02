@@ -1,22 +1,29 @@
 #[macro_use]
 extern crate clap;
+extern crate config;
+extern crate fuse;
+#[macro_use]
+extern crate lazy_static;
 extern crate quantumfs;
+extern crate time;
+extern crate web3;
+extern crate yaml_rust;
 
-use clap::App;
+use crate::args::ARGS;
 
 mod commands;
+mod fs;
+mod settings;
+mod args;
 
 fn main() {
-    let yaml = load_yaml!("../cli.yaml");
-    let matches = App::from_yaml(yaml).get_matches();
-
-    if let Some(_) = matches.subcommand_matches("mount") {
+    if let Some(_) = ARGS.subcommand_matches("mount") {
         commands::mount::mount();
-    } else if let Some(_) = matches.subcommand_matches("transaction") {
+    } else if let Some(_) = ARGS.subcommand_matches("transaction") {
         commands::transaction::transaction();
-    } else if let Some(_) = matches.subcommand_matches("commit") {
+    } else if let Some(_) = ARGS.subcommand_matches("commit") {
         commands::commit::commit();
-    } else if let Some(_) = matches.subcommand_matches("push") {
+    } else if let Some(_) = ARGS.subcommand_matches("push") {
         commands::push::push();
     } else {
         panic!("Invalid command");

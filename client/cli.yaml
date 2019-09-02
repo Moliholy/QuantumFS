@@ -3,18 +3,28 @@ version: "0.1.0"
 author: José Molina Colmenero <jmolinacolmenero@gmail.com>
 about: Highly-distributed censorship-resistant ethereum-based file system
 args:
-  - config:
-      short: c
-      long: config
-      value_name: FILE
-      help: Sets a custom config file
+  - address:
+      short: a
+      long: address
+      value_name: ADDRESS
+      help: user's ethereum address
       takes_value: true
+  - mountpoint:
+      short: m
+      long: mountpoint
+      value_name: DIRECTORY
+      help: directory to mount the file system in
+  - contract:
+      short: c
+      long: contract
+      value_name: ADDRESS
+      help: smart contract's ethereum address
 subcommands:
   - mount:
-      about: Mounts a Qauntum File System using FUSE
+      about: mounts a Qauntum File System using FUSE
   - transaction:
-      about: Enables changes to be made in the file system
+      about: enables changes to be made in the file system
   - commit:
-      about: Finalizes a transaction, commiting the changes
+      about: finalizes a transaction, commiting the changes
   - push:
-      about: Uploads the changes to the ethereum blockchain
+      about: uploads the changes to the ethereum blockchain

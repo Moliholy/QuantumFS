@@ -1,9 +1,10 @@
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter, Result};
+use std::io::Error as IOError;
 
 use failure::Error as FailureError;
+use serde_json::Error as SerdeError;
 use sqlite::Error as SqliteError;
-use std::io::Error as IOError;
 use web3::contract::Error as ContractError;
 
 #[derive(Debug)]
@@ -43,6 +44,12 @@ impl From<ContractError> for QFSError {
 
 impl From<IOError> for QFSError {
     fn from(err: IOError) -> Self {
+        QFSError { details: format!("{}", err) }
+    }
+}
+
+impl From<SerdeError> for QFSError {
+    fn from(err: SerdeError) -> Self {
         QFSError { details: format!("{}", err) }
     }
 }

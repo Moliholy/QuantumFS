@@ -11,3 +11,9 @@ edition = "2018"
 [dependencies]
 quantumfs = { path = "../quantumfs" }
 clap = {version = "2.33.0", features = ["yaml"]}
+fuse = "0.3.1"
+config = "0.9.3"
+lazy_static = "1.4.0"
+time = "0.1.42"
+web3 = "0.8.0"
+yaml-rust = "0.3.5"

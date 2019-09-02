@@ -23,6 +23,11 @@ pub fn get_web3(url: &str) -> Web3<Http> {
     Web3::new(transport)
 }
 
+pub fn parse_address(address: &str) -> Result<Address, QFSError> {
+    serde_json::from_str(&format!("{:?}", address))
+        .map_err(QFSError::from)
+}
+
 pub fn get_contract(web3: &Web3<Http>, address: Address) -> Contract<Http> {
     let bytes = fs::read(CONTRACT_JSON_PATH)
         .expect(format!("Contract JSON ABI not found under {}", CONTRACT_JSON_PATH).as_ref());
@@ -105,7 +110,8 @@ pub mod tests {
         let json: Value = serde_json::from_slice(&bytes).expect("Malformed JSON ABI");
         let contract_address = &json["networks"]["5777"]["address"];
         let address_string = contract_address.as_str().unwrap().to_lowercase();
-        serde_json::from_str(&format!("{:?}", address_string.as_str())).unwrap()
+        ethereum::parse_address(address_string.as_str())
+            .expect("Failure parsing the contract address")
     }
 
     #[test]
