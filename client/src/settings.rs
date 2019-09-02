@@ -20,7 +20,7 @@ fn init() -> Config {
             .expect(format!("Error loading the configuration from {}", config_file).as_str());
     } else {
         // load settings in ~/.qfs/settings, if present
-        config.merge(config::File::with_name("~/.qfs/settings"));
+        let _ = config.merge(config::File::with_name("~/.qfs/settings"));
     }
 
     // Add settings from the environment (with a prefix of QFS)
