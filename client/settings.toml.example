@@ -1,0 +1,6 @@
+web3 = "http://127.0.0.1:8545"
+ipfs_gateway_server = "127.0.0.1"
+ipfs_gateway_port = 5001
+address = "0xbc911bbceb9b4479ca40488517a5053139f1c6b7"
+contract = "0x4CD792314CbeaE08909FfF4B787d473166CB9aF3"
+mountpoint = "~/qfs"
