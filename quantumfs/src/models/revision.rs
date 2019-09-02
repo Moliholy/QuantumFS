@@ -2,9 +2,9 @@ use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::models::repository::Repository;
-use crate::operations::ipfs;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
+use crate::operations::ipfs::IPFS;
 
 #[derive(Debug)]
 pub struct RevisionTag {
@@ -44,12 +44,12 @@ impl Revision {
     }
 
     pub fn genesis(repository: &'static mut Repository) -> Result<Self, QFSError> {
-        let catalog = Catalog::new()?;
+        let catalog = Catalog::new(repository.ipfs())?;
         let hash = catalog.hash().clone();
         repository.add_catalog(catalog);
         Ok(Self {
             repository,
-            tag: RevisionTag::new(&hash, 0)
+            tag: RevisionTag::new(&hash, 0),
         })
     }
 
@@ -99,7 +99,7 @@ impl Revision {
 
     pub fn stream_file(&mut self, path: &str) -> Result<impl Iterator<Item=u8>, QFSError> {
         let result = self.lookup(path)?;
-        ipfs::stream(&result.hash)
+        self.repository.ipfs().stream(&result.hash)
     }
 
     pub fn fetch_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {

@@ -10,6 +10,7 @@ use crate::models::directoryentry::DirectoryEntry;
 use crate::operations::ipfs;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
+use crate::operations::ipfs::IPFS;
 
 lazy_static! {
     static ref LISTING_QUERY: String = format!(
@@ -93,7 +94,7 @@ impl fmt::Debug for Catalog {
 }
 
 impl Catalog {
-    pub fn new() -> Result<Self, QFSError> {
+    pub fn new(ipfs: &IPFS) -> Result<Self, QFSError> {
         let mut tmpfile = NamedTempFile::new().unwrap();
         let connection = Connection::open(tmpfile.path())
             .map_err(QFSError::from)?;
@@ -102,15 +103,15 @@ impl Catalog {
         connection.execute(CREATE_NESTED_CATALOGS.as_str()).unwrap();
         tmpfile.flush()?;
         let file = tmpfile.as_file();
-        let hash = ipfs::add(&file)?;
+        let hash = ipfs.add(&file)?;
         Ok(Self {
             connection,
             hash,
         })
     }
 
-    pub fn load(hash: &IpfsHash) -> Result<Self, QFSError> {
-        let db_bytes = ipfs::fetch(hash)?;
+    pub fn load(hash: &IpfsHash, ipfs: &IPFS) -> Result<Self, QFSError> {
+        let db_bytes = ipfs.fetch(hash)?;
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(&db_bytes)
             .map_err(QFSError::from)?;
@@ -198,10 +199,12 @@ impl Catalog {
 #[cfg(test)]
 mod tests {
     use crate::models::catalog::Catalog;
+    use crate::operations::ipfs::IPFS;
 
     #[test]
     fn test_create_catalog_should_work() {
-        let result = Catalog::new();
+        let ipfs = IPFS::new("127.0.0.1", 5001);
+        let result = Catalog::new(&ipfs);
         assert!(result.is_ok());
     }
 }

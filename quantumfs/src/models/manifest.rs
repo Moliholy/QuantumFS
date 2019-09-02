@@ -15,8 +15,8 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    pub fn new(address: Address, contract_address: Address) -> Self {
-        let web3 = ethereum::get_web3(ethereum::WEB3_DEFAULT_URL);
+    pub fn new(address: Address, contract_address: Address, web3_url: &str) -> Self {
+        let web3 = ethereum::get_web3(web3_url);
         let contract = ethereum::get_contract(&web3, contract_address);
         Self {
             address,
@@ -40,11 +40,12 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use crate::models::manifest::Manifest;
-    use crate::operations::ethereum;
-    use crate::operations::ethereum::tests::{TEST_CONTRACT, TEST_WEB3};
+    use crate::operations::ethereum::tests::{TEST_CONTRACT, TEST_WEB3, coinbase};
 
     fn create_manifest() -> Manifest {
-        Manifest::new(ethereum::coinbase(&TEST_WEB3), TEST_CONTRACT.address())
+        Manifest::new(coinbase(&TEST_WEB3),
+                      TEST_CONTRACT.address(),
+        "http://127.0.0.1:7545")
     }
 
     #[test]

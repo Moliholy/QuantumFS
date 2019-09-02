@@ -11,7 +11,19 @@ fn load_repository() -> Repository {
         .expect("User ethereum address not provided");
     let contract_address = SETTINGS.get::<Address>("contract")
         .expect("Contract ethereum address not provided");
-    Repository::new(client_address, contract_address)
+    let web3_url = SETTINGS.get::<String>("web")
+        .expect("Web3 URL not provided");
+    let ipfs_server = SETTINGS.get::<String>("ipfs-server")
+        .expect("IPFS server not provided");
+    let ipfs_port = SETTINGS.get::<u16>("ipfs-port")
+        .expect("IPFS port not provided");
+    Repository::new(
+        client_address,
+        contract_address,
+        &web3_url,
+        &ipfs_server,
+        ipfs_port,
+    )
 }
 
 pub fn mount() {

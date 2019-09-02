@@ -14,11 +14,29 @@ args:
       long: mountpoint
       value_name: DIRECTORY
       help: directory to mount the file system in
+      takes_value: true
   - contract:
       short: c
       long: contract
       value_name: ADDRESS
       help: smart contract's ethereum address
+      takes_value: true
+  - web3:
+      short: w
+      long: web3
+      value_name: URL
+      help: web3 HTTP client. Defaults to http://127.0.0.1:8545
+      takes_value: true
+  - ipfs-server:
+      long: ipfs-server
+      value_name: SERVER
+      help: IPFS HTTP server. It must allow both read and write operations. Defaults to 127.0.0.1
+      takes_value: true
+  - ipfs-port:
+      long: ipfs-port
+      value_name: PORT
+      help: IPFS HTTP port. Defaults to 5001
+      takes_value: true
 subcommands:
   - mount:
       about: mounts a Qauntum File System using FUSE
