@@ -3,6 +3,12 @@ version: "0.1.0"
 author: José Molina Colmenero <jmolinacolmenero@gmail.com>
 about: Highly-distributed censorship-resistant ethereum-based file system
 args:
+  - config:
+      short: c
+      long: config
+      value_name: FILE
+      help: configuration file path
+      takes_value: true
   - address:
       short: a
       long: address
@@ -16,7 +22,6 @@ args:
       help: directory to mount the file system in
       takes_value: true
   - contract:
-      short: c
       long: contract
       value_name: ADDRESS
       help: smart contract's ethereum address

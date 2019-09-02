@@ -19,6 +19,11 @@ fn init() -> Config {
     // Add settings from the environment (with a prefix of QFS)
     config.merge(config::Environment::with_prefix("QFS_")).unwrap();
 
+    // Add the custom configuration file, if present
+    if let Some(config_file) = ARGS.value_of("config") {
+        config.merge(config::File::with_name(config_file))
+            .expect(format!("Error loading the configuration from {}", config_file).as_str());
+    }
     // Add the client's ethereum address if passed as a parameter
     if let Some(address) = ARGS.value_of("address") {
         config.set("address", address).unwrap();
