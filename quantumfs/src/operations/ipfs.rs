@@ -11,8 +11,6 @@ use crate::errors::QFSError;
 use crate::types::ipfs::IpfsHash;
 
 static IPFS_HASH_PATTERN: &str = "^[a-zA-z0-9]{46}$";
-static IPFS_DEFAULT_URL: &str = "127.0.0.1";
-static IPFS_DEFAULT_PORT: u16 = 5001;
 
 
 pub fn validate_ipfs_hash(hash: &str) -> bool {

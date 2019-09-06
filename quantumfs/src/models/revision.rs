@@ -4,7 +4,6 @@ use crate::models::directoryentry::DirectoryEntry;
 use crate::models::repository::Repository;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
-use crate::operations::ipfs::IPFS;
 
 #[derive(Debug)]
 pub struct RevisionTag {
