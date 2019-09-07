@@ -5,7 +5,7 @@ use web3::types::Address;
 use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::manifest::Manifest;
-use crate::models::revision::Revision;
+use crate::models::revision::{Revision, RevisionTag};
 use crate::types::ipfs::IpfsHash;
 use web3::Web3;
 use web3::transports::Http;
@@ -39,14 +39,36 @@ impl Repository {
         &self.ipfs
     }
 
+    fn fetch_last_revision_tag(&self) -> Result<RevisionTag, QFSError> {
+        self.manifest.fetch_last_revision()
+    }
+
+    fn fetch_revision_tag(&self, revision_number: u128) -> Result<RevisionTag, QFSError> {
+        self.manifest.fetch_revision(revision_number)
+    }
+
     pub fn load_revision(&'static mut self, revision_number: u128) -> Result<Revision, QFSError> {
-        let tag = self.manifest.fetch_revision(revision_number)?;
+        let tag = self.fetch_revision_tag(revision_number)?;
         Ok(Revision::new(self, tag))
     }
 
     pub fn load_current_revision(&'static mut self) -> Result<Revision, QFSError> {
-        let tag = self.manifest.fetch_last_revision()?;
+        let tag = self.fetch_last_revision_tag()?;
         Ok(Revision::new(self, tag))
+    }
+
+    pub fn create_revision(&'static mut self) -> Result<Revision, QFSError> {
+        let (hash, revision) = {
+            let current_revision_tag = self.fetch_last_revision_tag()?;
+            (current_revision_tag.hash().clone(), current_revision_tag.revision())
+        };
+        match revision {
+            0 => Revision::genesis(self),
+            _ => {
+                let tag = RevisionTag::new(&hash, revision + 1);
+                Ok(Revision::new(self, tag))
+            }
+        }
     }
 
     pub fn retrieve_and_open_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
