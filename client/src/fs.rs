@@ -1,13 +1,19 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fs::File;
 use std::path::Path;
 
 use fuse::{Filesystem, ReplyAttr, ReplyBmap, ReplyCreate, ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyLock, ReplyOpen, ReplyStatfs, ReplyWrite, ReplyXattr, ReplyXTimes, Request};
-
-use quantumfs::models::repository::Repository;
 use time::Timespec;
 
+use quantumfs::models::repository::Repository;
+use quantumfs::models::revision::Revision;
+use quantumfs::errors::QFSError;
+
 pub struct QuantumFS {
-    repository: Repository
+    repository: Repository,
+    opened_files: HashMap<String, File>,
+    revision: Revision,
 }
 
 impl Filesystem for QuantumFS {
@@ -161,9 +167,12 @@ impl Filesystem for QuantumFS {
 }
 
 impl QuantumFS {
-    pub fn new(repository: Repository) -> Self {
-        Self {
-            repository
-        }
+    pub fn new(mut repository: Repository) -> Result<Self, QFSError> {
+        let revision = repository.load_current_revision()?;
+        Ok(Self {
+            repository,
+            opened_files: HashMap::new(),
+            revision,
+        })
     }
 }

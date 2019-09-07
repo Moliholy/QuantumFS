@@ -11,7 +11,7 @@ fn load_repository() -> Repository {
         .expect("User ethereum address not provided");
     let contract_address = SETTINGS.get::<Address>("contract")
         .expect("Contract ethereum address not provided");
-    let web3_url = SETTINGS.get::<String>("web")
+    let web3_url = SETTINGS.get::<String>("web3")
         .expect("Web3 URL not provided");
     let ipfs_server = SETTINGS.get::<String>("ipfs-server")
         .expect("IPFS server not provided");
@@ -30,7 +30,8 @@ pub fn mount() {
     let mountpoint = SETTINGS.get::<String>("mountpoint")
         .expect("Mount point not provided");
     let repository = load_repository();
-    let file_system = QuantumFS::new(repository);
+    let file_system = QuantumFS::new(repository)
+        .expect("Failure mounting the file system");
     let options = ["-o", "ro", "-o", "fsname=qfs"]
         .iter()
         .map(|o| o.as_ref())
