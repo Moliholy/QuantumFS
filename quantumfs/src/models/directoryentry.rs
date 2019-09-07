@@ -5,7 +5,7 @@ use crate::types::ipfs::IpfsHash;
 pub static DATABASE_FIELDS: &str = "path, parent, hash, flags, size, mode, mtime, name, symlink";
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DirectoryEntry {
     pub path: IpfsHash,
     pub parent: IpfsHash,
@@ -23,13 +23,13 @@ impl DirectoryEntry {
         DirectoryEntry {
             path: IpfsHash::new(statement.read::<String>(0).unwrap().as_str()).unwrap(),
             parent: IpfsHash::new(statement.read::<String>(1).unwrap().as_str()).unwrap(),
-            hash: IpfsHash::new(statement.read::<String>(3).unwrap().as_str()).unwrap(),
-            flags: statement.read::<i64>(4).unwrap(),
-            size: statement.read::<i64>(5).unwrap(),
-            mode: statement.read::<i64>(6).unwrap(),
-            mtime: statement.read::<i64>(7).unwrap(),
-            name: statement.read::<String>(8).unwrap(),
-            symlink: statement.read::<String>(9).unwrap(),
+            hash: IpfsHash::new(statement.read::<String>(2).unwrap().as_str()).unwrap(),
+            flags: statement.read::<i64>(3).unwrap(),
+            size: statement.read::<i64>(4).unwrap(),
+            mode: statement.read::<i64>(5).unwrap(),
+            mtime: statement.read::<i64>(6).unwrap(),
+            name: statement.read::<String>(7).unwrap(),
+            symlink: statement.read::<String>(8).unwrap(),
         }
     }
 

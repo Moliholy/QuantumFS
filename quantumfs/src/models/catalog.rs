@@ -1,7 +1,7 @@
 use std::fmt;
 use std::io::Write;
 
-use sqlite::{Connection, OpenFlags, State};
+use sqlite::{Connection, State};
 use tempfile::NamedTempFile;
 
 use crate::errors::QFSError;
@@ -17,8 +17,13 @@ lazy_static! {
     "SELECT {} \
         FROM catalog \
         WHERE parent = ? \
-        ORDER BY name ASC;", directoryentry::DATABASE_FIELDS)
-        ;
+        ORDER BY name ASC;", directoryentry::DATABASE_FIELDS
+    );
+
+    static ref INSERT_QUERY: String = format!(
+    "INSERT INTO catalog ({}) \
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", directoryentry::DATABASE_FIELDS
+    );
 
     static ref FIND_PATH: String = format!(
     "SELECT {} \
@@ -85,6 +90,7 @@ impl CatalogReference {
 pub struct Catalog {
     hash: IpfsHash,
     connection: Connection,
+    file: NamedTempFile,
 }
 
 impl fmt::Debug for Catalog {
@@ -107,6 +113,7 @@ impl Catalog {
         Ok(Self {
             connection,
             hash,
+            file: tmpfile,
         })
     }
 
@@ -115,13 +122,13 @@ impl Catalog {
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(&db_bytes)
             .map_err(QFSError::from)?;
-        let connection = Connection::open_with_flags(
+        let connection = Connection::open(
             tmpfile.path(),
-            OpenFlags::new().set_read_only(),
         ).map_err(QFSError::from)?;
         Ok(Self {
             hash: hash.clone(),
             connection,
+            file: tmpfile,
         })
     }
 
@@ -193,18 +200,61 @@ impl Catalog {
         }
         Ok(dirents)
     }
+
+    pub fn add_directory_entry(&self, dirent: &DirectoryEntry) -> Result<(), QFSError> {
+        let mut statement = self.connection
+            .prepare(INSERT_QUERY.as_str())
+            .unwrap();
+        statement.bind(1, dirent.path.to_string().as_str()).unwrap();
+        statement.bind(2, dirent.parent.to_string().as_str()).unwrap();
+        statement.bind(3, dirent.hash.to_string().as_str()).unwrap();
+        statement.bind(4, dirent.flags).unwrap();
+        statement.bind(5, dirent.size).unwrap();
+        statement.bind(6, dirent.mode).unwrap();
+        statement.bind(7, dirent.mtime).unwrap();
+        statement.bind(8, dirent.name.as_str()).unwrap();
+        statement.bind(9, dirent.symlink.as_str()).unwrap();
+        statement.next().map_err(QFSError::from)?;
+        Ok(())
+    }
 }
 
 
 #[cfg(test)]
 mod tests {
     use crate::models::catalog::Catalog;
-    use crate::operations::ipfs::IPFS;
+    use crate::operations::ipfs::{self, IPFS};
+    use crate::models::directoryentry::{DirectoryEntry, flags};
+    use crate::types::ipfs::IpfsHash;
 
     #[test]
     fn test_create_catalog_should_work() {
         let ipfs = IPFS::new("127.0.0.1", 5001);
         let result = Catalog::new(&ipfs);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_add_entry_should_work() {
+        let ipfs = IPFS::new("127.0.0.1", 5001);
+        let catalog = Catalog::new(&ipfs).unwrap();
+        let path = "/file1";
+        let content = "this is file1";
+        let dirent = DirectoryEntry {
+            path: IpfsHash::new(ipfs::hash_bytes(path.as_bytes()).as_str()).unwrap(),
+            parent: IpfsHash::new(ipfs::hash_bytes("/".as_bytes()).as_str()).unwrap(),
+            hash: IpfsHash::new(ipfs::hash_bytes(content.as_bytes()).as_str()).unwrap(),
+            flags: flags::FILE,
+            size: content.len() as i64,
+            mode: 0,
+            mtime: 0,
+            name: "file1".to_string(),
+            symlink: "".to_string()
+        };
+        let result = catalog.add_directory_entry(&dirent);
+        assert!(result.is_ok(), format!("{:?}", result));
+        let files = catalog.list_directory("/").unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0], dirent);
     }
 }

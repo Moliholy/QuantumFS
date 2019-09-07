@@ -2,7 +2,7 @@ use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::models::repository::Repository;
-use crate::operations::path;
+use crate::operations::{path, ipfs};
 use crate::types::ipfs::IpfsHash;
 
 #[derive(Debug)]
@@ -104,5 +104,15 @@ impl Revision {
     pub fn fetch_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
         let bytes = self.stream_file(path)?.collect();
         Ok(bytes)
+    }
+
+    pub fn add_directory_entry(&mut self, dirent: DirectoryEntry, path: &str) -> Result<(), QFSError> {
+        if IpfsHash::new(ipfs::hash_bytes(path.as_bytes()).as_str())? != dirent.parent {
+            return Err(QFSError::new("Invalid path"));
+        }
+        if !path.ends_with(format!("/{}", dirent.name).as_str()) {
+            return Err(QFSError::new("File name does not match the one in the path"))
+        }
+        self.retrieve_catalog_for_path(path)?.add_directory_entry(&dirent)
     }
 }
