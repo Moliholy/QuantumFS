@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
 extern crate config;
-extern crate fuse;
+extern crate fuse_mt;
 #[macro_use]
 extern crate lazy_static;
 extern crate quantumfs;

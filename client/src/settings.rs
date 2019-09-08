@@ -13,10 +13,9 @@ fn init() -> Config {
     let mut config = Config::default();
     // set default variables first
     config
-        .set("web3", "http://127.0.0.1:8545").unwrap()
-        .set("ipfs_gateway_server", "127.0.0.1").unwrap()
-        .set("ipfs_gateway_port", 5001).unwrap();
-
+        .set_default("web3", "http://127.0.0.1:8545").unwrap()
+        .set_default("ipfs_gateway_server", "127.0.0.1").unwrap()
+        .set_default("ipfs_gateway_port", 5001).unwrap();
     // Add the custom configuration file, if present
     if let Some(config_file) = ARGS.value_of("config") {
         config.merge(config::File::with_name(config_file))

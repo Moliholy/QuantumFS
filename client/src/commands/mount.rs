@@ -1,10 +1,12 @@
 use std::ffi::OsStr;
 
+use fuse_mt::FuseMT;
+use web3::types::Address;
+
 use quantumfs::models::repository::Repository;
 
 use crate::fs::QuantumFS;
 use crate::settings::SETTINGS;
-use web3::types::Address;
 
 fn load_repository() -> Repository {
     let client_address = SETTINGS.get::<Address>("address")
@@ -30,12 +32,13 @@ pub fn mount() {
     let mountpoint = SETTINGS.get::<String>("mountpoint")
         .expect("Mount point not provided");
     let repository = load_repository();
-    let file_system = QuantumFS::new(repository)
+    let qfs = QuantumFS::new(repository)
         .expect("Failure mounting the file system");
     let options = ["-o", "ro", "-o", "fsname=qfs"]
         .iter()
         .map(|o| o.as_ref())
         .collect::<Vec<&OsStr>>();
-    fuse::mount(file_system, &mountpoint, &options)
+    let filesystem = FuseMT::new(qfs, 0);
+    fuse_mt::mount(filesystem, &mountpoint, &options)
         .expect("Failure mounting the file system");
 }

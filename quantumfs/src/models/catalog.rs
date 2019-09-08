@@ -1,16 +1,17 @@
+use std::error::Error;
 use std::fmt;
 use std::io::Write;
 
-use sqlite::{Connection, State};
+use rusqlite::{Connection, NO_PARAMS, OpenFlags, ToSql};
 use tempfile::NamedTempFile;
 
 use crate::errors::QFSError;
 use crate::models::directoryentry;
 use crate::models::directoryentry::DirectoryEntry;
 use crate::operations::ipfs;
+use crate::operations::ipfs::IPFS;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
-use crate::operations::ipfs::IPFS;
 
 lazy_static! {
     static ref LISTING_QUERY: String = format!(
@@ -90,7 +91,12 @@ impl CatalogReference {
 pub struct Catalog {
     hash: IpfsHash,
     connection: Connection,
-    file: NamedTempFile,
+    _file: NamedTempFile,  // this is here just to avoid loosing the file
+}
+
+unsafe impl Sync for Catalog {
+    // Sqlite does not allow multithreading, and hence whatever client
+    // implementing QuantumFS MUST NOT write in the catalog databases concurrently.
 }
 
 impl fmt::Debug for Catalog {
@@ -102,18 +108,27 @@ impl fmt::Debug for Catalog {
 impl Catalog {
     pub fn new(ipfs: &IPFS) -> Result<Self, QFSError> {
         let mut tmpfile = NamedTempFile::new().unwrap();
-        let connection = Connection::open(tmpfile.path())
-            .map_err(QFSError::from)?;
-        connection.execute(CREATE_CATALOG.as_str()).unwrap();
-        connection.execute(CREATE_INDEX.as_str()).unwrap();
-        connection.execute(CREATE_NESTED_CATALOGS.as_str()).unwrap();
+        let connection = Connection::open_with_flags(
+            tmpfile.path(),
+            OpenFlags::default(),
+        ).map_err(QFSError::from)?;
+        connection.execute_batch(
+            format!(
+                "BEGIN; \
+                {} \
+                {} \
+                {} \
+                END;",
+                CREATE_CATALOG.as_str(), CREATE_INDEX.as_str(), CREATE_NESTED_CATALOGS.as_str()
+            ).as_str()
+        )?;
         tmpfile.flush()?;
         let file = tmpfile.as_file();
         let hash = ipfs.add(&file)?;
         Ok(Self {
             connection,
             hash,
-            file: tmpfile,
+            _file: tmpfile,
         })
     }
 
@@ -122,13 +137,14 @@ impl Catalog {
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(&db_bytes)
             .map_err(QFSError::from)?;
-        let connection = Connection::open(
+        let connection = Connection::open_with_flags(
             tmpfile.path(),
+            OpenFlags::default(),
         ).map_err(QFSError::from)?;
         Ok(Self {
             hash: hash.clone(),
             connection,
-            file: tmpfile,
+            _file: tmpfile,
         })
     }
 
@@ -140,13 +156,15 @@ impl Catalog {
         let mut statement = self.connection
             .prepare(LIST_NESTED.as_str())
             .unwrap();
-        let count = statement.count();
-        let mut nested = Vec::with_capacity(count);
-        while let State::Row = statement.next().unwrap() {
+        let mut nested = Vec::new();
+        let mut rows = statement.query(NO_PARAMS).unwrap();
+        while let Ok(Some(row)) = rows.next() {
+            let path: String = row.get(0).unwrap();
+            let hash: String = row.get(1).unwrap();
             let catalog_reference = CatalogReference {
-                path: IpfsHash::new(statement.read::<String>(0).unwrap().as_str()).unwrap(),
-                hash: IpfsHash::new(statement.read::<String>(1).unwrap().as_str()).unwrap(),
-                size: statement.read::<i64>(2).unwrap(),
+                path: IpfsHash::new(path.as_str()).unwrap(),
+                hash: IpfsHash::new(hash.as_str()).unwrap(),
+                size: row.get(3).unwrap(),
             };
             nested.push(catalog_reference);
         }
@@ -182,40 +200,47 @@ impl Catalog {
         let mut statement = self.connection
             .prepare(FIND_PATH.as_str())
             .unwrap();
-        statement.bind(1, hash.as_str()).unwrap();
-        statement.next().map_err(QFSError::from)?;
-        Ok(DirectoryEntry::from_sql_statement(&statement))
+        let mut rows = statement.query(&[hash]).unwrap();
+        if let Ok(Some(row)) = rows.next() {
+            let dirent = DirectoryEntry::from_sql_row(row);
+            return Ok(dirent);
+        }
+        Err(QFSError::new(format!("Entry at {} not found", path).as_str()))
     }
 
-    pub fn list_directory(&self, path: &str) -> Result<Vec<DirectoryEntry>, QFSError> {
+    pub fn list_directory(&self, path: &str) -> Vec<DirectoryEntry> {
         let real_path = path::canonicalize_path(path);
-        let mut dirents = Vec::new();
         let hash = ipfs::hash_bytes(real_path.as_bytes());
         let mut statement = self.connection
             .prepare(LISTING_QUERY.as_str())
             .unwrap();
-        statement.bind(1, hash.as_str()).unwrap();
-        while let State::Row = statement.next().map_err(QFSError::from)? {
-            dirents.push(DirectoryEntry::from_sql_statement(&statement));
+        let mut rows = statement.query(&[hash]).unwrap();
+        let mut dirents = Vec::new();
+        while let Ok(Some(row)) = rows.next() {
+            dirents.push(DirectoryEntry::from_sql_row(row));
         }
-        Ok(dirents)
+        dirents
     }
 
     pub fn add_directory_entry(&self, dirent: &DirectoryEntry) -> Result<(), QFSError> {
         let mut statement = self.connection
             .prepare(INSERT_QUERY.as_str())
             .unwrap();
-        statement.bind(1, dirent.path.to_string().as_str()).unwrap();
-        statement.bind(2, dirent.parent.to_string().as_str()).unwrap();
-        statement.bind(3, dirent.hash.to_string().as_str()).unwrap();
-        statement.bind(4, dirent.flags).unwrap();
-        statement.bind(5, dirent.size).unwrap();
-        statement.bind(6, dirent.mode).unwrap();
-        statement.bind(7, dirent.mtime).unwrap();
-        statement.bind(8, dirent.name.as_str()).unwrap();
-        statement.bind(9, dirent.symlink.as_str()).unwrap();
-        statement.next().map_err(QFSError::from)?;
-        Ok(())
+        let result = statement.insert(&[
+            &dirent.path.to_string() as &dyn ToSql,
+            &dirent.parent.to_string() as &dyn ToSql,
+            &dirent.hash.to_string() as &dyn ToSql,
+            &dirent.flags,
+            &dirent.size,
+            &dirent.mode,
+            &dirent.mtime,
+            &dirent.name,
+            &dirent.symlink,
+        ]);
+        match result {
+            Ok(num_rows) => if num_rows == 1 { Ok(()) } else { Err(QFSError::new("Error adding a directory entry")) },
+            Err(error) => Err(QFSError::new(error.description()))
+        }
     }
 }
 
@@ -223,8 +248,8 @@ impl Catalog {
 #[cfg(test)]
 mod tests {
     use crate::models::catalog::Catalog;
-    use crate::operations::ipfs::{self, IPFS};
     use crate::models::directoryentry::{DirectoryEntry, flags};
+    use crate::operations::ipfs::{self, IPFS};
     use crate::types::ipfs::IpfsHash;
 
     #[test]
@@ -249,11 +274,11 @@ mod tests {
             mode: 0,
             mtime: 0,
             name: "file1".to_string(),
-            symlink: "".to_string()
+            symlink: "".to_string(),
         };
         let result = catalog.add_directory_entry(&dirent);
         assert!(result.is_ok(), format!("{:?}", result));
-        let files = catalog.list_directory("/").unwrap();
+        let files = catalog.list_directory("/");
         assert_eq!(files.len(), 1);
         assert_eq!(files[0], dirent);
     }

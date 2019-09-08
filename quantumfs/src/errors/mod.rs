@@ -4,7 +4,7 @@ use std::io::Error as IOError;
 
 use failure::Error as FailureError;
 use serde_json::Error as SerdeError;
-use sqlite::Error as SqliteError;
+use rusqlite::Error as SqliteError;
 use web3::contract::Error as ContractError;
 
 #[derive(Debug)]

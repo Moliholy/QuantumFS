@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
 use crate::models::directoryentry::DirectoryEntry;
-use crate::models::repository::Repository;
-use crate::operations::{path, ipfs};
+use crate::operations::{ipfs, path};
+use crate::operations::ipfs::IPFS;
 use crate::types::ipfs::IpfsHash;
 
 #[derive(Debug)]
@@ -30,26 +32,30 @@ impl RevisionTag {
 
 #[derive(Debug)]
 pub struct Revision {
-    repository: &'static mut Repository,
+    ipfs: IPFS,
     tag: RevisionTag,
+    catalogs: HashMap<IpfsHash, Catalog>,
 }
 
 impl Revision {
-    pub fn new(repository: &'static mut Repository, tag: RevisionTag) -> Self {
+    pub fn new(ipfs: IPFS, tag: RevisionTag) -> Self {
         Self {
-            repository,
+            ipfs,
             tag,
+            catalogs: HashMap::new(),
         }
     }
 
-    pub fn genesis(repository: &'static mut Repository) -> Result<Self, QFSError> {
-        let catalog = Catalog::new(repository.ipfs())?;
+    pub fn genesis(ipfs: IPFS) -> Result<Self, QFSError> {
+        let catalog = Catalog::new(&ipfs)?;
         let hash = catalog.hash().clone();
-        repository.add_catalog(catalog);
-        Ok(Self {
-            repository,
+        let mut instance = Self {
+            ipfs,
             tag: RevisionTag::new(&hash, 0),
-        })
+            catalogs: HashMap::new(),
+        };
+        instance.add_catalog(catalog);
+        Ok(instance)
     }
 
     pub fn hash(&self) -> &IpfsHash {
@@ -67,10 +73,6 @@ impl Revision {
         best_fit.find_directory_entry(path)
     }
 
-    pub fn retrieve_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
-        self.repository.retrieve_catalog(hash)
-    }
-
     pub fn retrieve_root_catalog(&mut self) -> Result<&Catalog, QFSError> {
         let hash = self.hash().clone();
         self.retrieve_catalog(&hash)
@@ -81,7 +83,7 @@ impl Revision {
         let mut hash = root_catalog_hash.clone();
         loop {
             match self.retrieve_catalog(&hash)?.find_nested_for_path(path) {
-                None => return Ok(self.repository.get_opened_catalog(&hash).unwrap()),
+                None => return Ok(self.get_opened_catalog(&hash).unwrap()),
                 Some(nested_reference) => hash = nested_reference.hash().clone()
             };
         }
@@ -91,14 +93,14 @@ impl Revision {
         let dirent = self.lookup(path)?;
         if dirent.is_directory() {
             let catalog = self.retrieve_catalog_for_path(path)?;
-            return catalog.list_directory(path);
+            return Ok(catalog.list_directory(path));
         }
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))
     }
 
     pub fn stream_file(&mut self, path: &str) -> Result<impl Iterator<Item=u8>, QFSError> {
         let result = self.lookup(path)?;
-        self.repository.ipfs().stream(&result.hash)
+        self.ipfs.stream(&result.hash)
     }
 
     pub fn fetch_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
@@ -114,5 +116,29 @@ impl Revision {
             return Err(QFSError::new("File name does not match the one in the path"))
         }
         self.retrieve_catalog_for_path(path)?.add_directory_entry(&dirent)
+    }
+
+    pub fn retrieve_and_open_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
+        let catalog = Catalog::load(hash, &self.ipfs)?;
+        self.add_catalog(catalog);
+        Ok(&self.catalogs[&hash])
+    }
+
+    pub fn retrieve_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
+        if self.catalogs.contains_key(&hash) {
+            return Ok(&self.catalogs[&hash]);
+        }
+        self.retrieve_and_open_catalog(hash)
+    }
+
+    pub fn get_opened_catalog(&self, hash: &IpfsHash) -> Option<&Catalog> {
+        self.catalogs.get(hash)
+    }
+
+    pub fn add_catalog(&mut self, catalog: Catalog) {
+        self.catalogs.insert(
+            catalog.hash().clone(),
+            catalog,
+        );
     }
 }

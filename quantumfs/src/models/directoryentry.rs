@@ -1,4 +1,4 @@
-use sqlite::Statement;
+use rusqlite::Row;
 
 use crate::types::ipfs::IpfsHash;
 
@@ -19,17 +19,20 @@ pub struct DirectoryEntry {
 }
 
 impl DirectoryEntry {
-    pub fn from_sql_statement(statement: &Statement) -> Self {
-        DirectoryEntry {
-            path: IpfsHash::new(statement.read::<String>(0).unwrap().as_str()).unwrap(),
-            parent: IpfsHash::new(statement.read::<String>(1).unwrap().as_str()).unwrap(),
-            hash: IpfsHash::new(statement.read::<String>(2).unwrap().as_str()).unwrap(),
-            flags: statement.read::<i64>(3).unwrap(),
-            size: statement.read::<i64>(4).unwrap(),
-            mode: statement.read::<i64>(5).unwrap(),
-            mtime: statement.read::<i64>(6).unwrap(),
-            name: statement.read::<String>(7).unwrap(),
-            symlink: statement.read::<String>(8).unwrap(),
+    pub fn from_sql_row(row: &Row) -> Self {
+        let path: String = row.get(0).unwrap();
+        let parent: String = row.get(1).unwrap();
+        let hash: String = row.get(2).unwrap();
+        Self {
+            path: IpfsHash::new(path.as_str()).unwrap(),
+            parent: IpfsHash::new(parent.as_str()).unwrap(),
+            hash: IpfsHash::new(hash.as_str()).unwrap(),
+            flags: row.get(3).unwrap(),
+            size: row.get(4).unwrap(),
+            mode: row.get(5).unwrap(),
+            mtime: row.get(6).unwrap(),
+            name: row.get(7).unwrap(),
+            symlink: row.get(8).unwrap(),
         }
     }
 

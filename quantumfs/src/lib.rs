@@ -6,7 +6,7 @@ extern crate multihash;
 extern crate path_absolutize;
 extern crate regex;
 extern crate serde_json;
-extern crate sqlite;
+extern crate rusqlite;
 extern crate tempfile;
 extern crate web3;
 
