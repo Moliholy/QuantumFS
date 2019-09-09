@@ -18,6 +18,10 @@ pub struct QuantumFS {
 }
 
 impl FilesystemMT for QuantumFS {
+    fn init(&self, _req: RequestInfo) -> ResultEmpty {
+        Ok(())
+    }
+
     fn destroy(&self, _req: RequestInfo) {
         self.opened_files.write().unwrap().clear();
     }
