@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Seek};
 use std::io::SeekFrom::Start;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
-use fuse_mt::{FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr};
+use fuse_mt::{DirectoryEntry, FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr};
 use libc;
 use time::Timespec;
 
 use quantumfs::errors::QFSError;
+use quantumfs::models::directoryentry::DirectoryEntry as QFSDirent;
 use quantumfs::models::repository::Repository;
 use quantumfs::models::revision::Revision;
 
@@ -21,6 +23,16 @@ pub struct QuantumFS {
     repository: RwLock<Repository>,
     opened_files: RwLock<HashMap<PathBuf, File>>,
     revision: RwLock<Revision>,
+}
+
+fn get_file_type(dirent: &QFSDirent) -> FileType {
+    let mut kind = FileType::RegularFile;
+    if dirent.is_directory() {
+        kind = FileType::Directory;
+    } else if dirent.is_symlink() {
+        kind = FileType::Symlink
+    }
+    kind
 }
 
 impl FilesystemMT for QuantumFS {
@@ -38,12 +50,7 @@ impl FilesystemMT for QuantumFS {
         match revision.lookup(path) {
             Err(_) => Err(1),
             Ok(dirent) => {
-                let mut kind = FileType::RegularFile;
-                if dirent.is_directory() {
-                    kind = FileType::Directory;
-                } else if dirent.is_symlink() {
-                    kind = FileType::Symlink
-                }
+                let kind = get_file_type(&dirent);
                 Ok((TTL, FileAttr {
                     size: dirent.size as u64,
                     blocks: (1 + dirent.size / 512) as u64,
@@ -57,7 +64,7 @@ impl FilesystemMT for QuantumFS {
                     uid: 1,
                     gid: 1,
                     rdev: 1,
-                    flags: dirent.flags as u32
+                    flags: dirent.flags as u32,
                 }))
             }
         }
@@ -104,12 +111,18 @@ impl FilesystemMT for QuantumFS {
         Ok(())
     }
 
-    fn readdir(&self, _req: RequestInfo, _path: &Path, _fh: u64) -> ResultReaddir {
-        unimplemented!()
-    }
-
-    fn getxattr(&self, _req: RequestInfo, _path: &Path, _name: &OsStr, _size: u32) -> ResultXattr {
-        unimplemented!()
+    fn readdir(&self, _req: RequestInfo, path: &Path, _fh: u64) -> ResultReaddir {
+        match self.revision.write().unwrap().list_directory(path.to_str().unwrap()) {
+            Err(_) => Err(libc::ENOENT),
+            Ok(dirents) => {
+                Ok(dirents.iter().map(|dirent| {
+                    DirectoryEntry {
+                        name: OsString::from(dirent.name.as_str()),
+                        kind: get_file_type(&dirent),
+                    }
+                }).collect())
+            }
+        }
     }
 }
 
