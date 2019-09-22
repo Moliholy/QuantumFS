@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::path::Path;
+use std::io::{Read, Seek};
+use std::io::SeekFrom::Start;
+use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
 use fuse_mt::{FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr};
@@ -17,7 +19,7 @@ const TTL: Timespec = Timespec { sec: 1, nsec: 0 };
 
 pub struct QuantumFS {
     repository: RwLock<Repository>,
-    opened_files: RwLock<HashMap<String, File>>,
+    opened_files: RwLock<HashMap<PathBuf, File>>,
     revision: RwLock<Revision>,
 }
 
@@ -75,22 +77,31 @@ impl FilesystemMT for QuantumFS {
     }
 
     fn open(&self, _req: RequestInfo, path: &Path, _flags: u32) -> ResultOpen {
-        let path = path.to_str().unwrap();
-        match self.revision.write().unwrap().get_file(path) {
+        match self.revision.write().unwrap().get_file(path.to_str().unwrap()) {
             Err(error) => Err(libc::ENOENT),
             Ok(file) => {
-                self.opened_files.write().unwrap().insert(path.into(), file);
+                self.opened_files.write().unwrap().insert(PathBuf::from(path), file);
                 Ok((0, libc::O_RDONLY as u32))
             }
         }
     }
 
-    fn read(&self, _req: RequestInfo, _path: &Path, _fh: u64, _offset: u64, _size: u32, result: impl FnOnce(Result<&[u8], i32>)) {
-        unimplemented!()
+    fn read(&self, _req: RequestInfo, path: &Path, _fh: u64, offset: u64, size: u32, result: impl FnOnce(Result<&[u8], i32>)) {
+        if let Some(mut file) = self.opened_files.read().unwrap().get(path) {
+            let size = size as usize;
+            let mut buffer = Vec::with_capacity(size);
+            let read = 0u64;
+            file.seek(Start(offset)).unwrap();
+            file.read_exact(&mut buffer[0..size]).unwrap();
+            result(Ok(&buffer));
+        } else {
+            result(Err(libc::ENOENT));
+        }
     }
 
-    fn release(&self, _req: RequestInfo, _path: &Path, _fh: u64, _flags: u32, _lock_owner: u64, _flush: bool) -> ResultEmpty {
-        unimplemented!()
+    fn release(&self, _req: RequestInfo, path: &Path, _fh: u64, _flags: u32, _lock_owner: u64, _flush: bool) -> ResultEmpty {
+        self.opened_files.write().unwrap().remove(path);
+        Ok(())
     }
 
     fn readdir(&self, _req: RequestInfo, _path: &Path, _fh: u64) -> ResultReaddir {
