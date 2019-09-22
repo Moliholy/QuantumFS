@@ -1,4 +1,9 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
+use filepath::FilePath;
 
 use crate::errors::QFSError;
 use crate::models::catalog::Catalog;
@@ -35,24 +40,27 @@ pub struct Revision {
     ipfs: IPFS,
     tag: RevisionTag,
     catalogs: HashMap<IpfsHash, Catalog>,
+    cache_dir: PathBuf,
 }
 
 impl Revision {
-    pub fn new(ipfs: IPFS, tag: RevisionTag) -> Self {
+    pub fn new(ipfs: IPFS, tag: RevisionTag, cache_dir: &Path) -> Self {
         Self {
             ipfs,
             tag,
             catalogs: HashMap::new(),
+            cache_dir: cache_dir.to_owned(),
         }
     }
 
-    pub fn genesis(ipfs: IPFS) -> Result<Self, QFSError> {
-        let catalog = Catalog::new(&ipfs)?;
-        let hash = catalog.hash().clone();
+    pub fn genesis(ipfs: IPFS, cache_dir: &Path) -> Result<Self, QFSError> {
+        let catalog = Catalog::new(cache_dir)?;
+        let hash = ipfs.add(catalog.file())?;
         let mut instance = Self {
             ipfs,
             tag: RevisionTag::new(&hash, 0),
             catalogs: HashMap::new(),
+            cache_dir: PathBuf::from(cache_dir),
         };
         instance.add_catalog(catalog);
         Ok(instance)
@@ -100,14 +108,45 @@ impl Revision {
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))
     }
 
-    pub fn stream_file(&mut self, path: &str) -> Result<impl Iterator<Item=u8>, QFSError> {
+    pub fn get_file(&mut self, path: &str) -> Result<File, QFSError> {
         let result = self.lookup(path)?;
-        self.ipfs.stream(&result.hash)
+        if !result.is_file() {
+            return Err(QFSError::new(format!("{} is not a file", path).as_str()));
+        }
+        let hash = &result.hash;
+        self.get_object(hash)
     }
 
-    pub fn fetch_file(&mut self, path: &str) -> Result<Vec<u8>, QFSError> {
-        let bytes = self.stream_file(path)?.collect();
-        Ok(bytes)
+    fn fetch_object(&self, hash: &IpfsHash) -> Result<File, QFSError> {
+        let cache_path = self.cache_path_for_hash(hash);
+        let mut file = File::create(cache_path.as_path())
+            .expect(format!("Failure creating a new file in {}", cache_path.to_str().unwrap()).as_str());
+        let bytes = self.ipfs.fetch(hash)?;
+        file.write_all(bytes.as_ref());
+        Ok(file)
+    }
+
+    fn cache_path(&self) -> PathBuf {
+        self.cache_dir.join("data")
+    }
+
+    fn cache_path_for_hash(&self, hash: &IpfsHash) -> PathBuf {
+        self.cache_path().join(hash.as_ref())
+    }
+
+    fn get_object_from_cache(&self, hash: &IpfsHash) -> Option<File> {
+        let path = self.cache_path_for_hash(hash);
+        match File::open(path) {
+            Err(_) => None,
+            Ok(file) => Some(file)
+        }
+    }
+
+    pub fn get_object(&mut self, hash: &IpfsHash) -> Result<File, QFSError> {
+        match self.get_object_from_cache(hash) {
+            None => self.fetch_object(hash),
+            Some(file) => Ok(file)
+        }
     }
 
     pub fn add_directory_entry(&mut self, dirent: DirectoryEntry, path: &str) -> Result<(), QFSError> {
@@ -121,7 +160,9 @@ impl Revision {
     }
 
     pub fn retrieve_and_open_catalog(&mut self, hash: &IpfsHash) -> Result<&Catalog, QFSError> {
-        let catalog = Catalog::load(hash, &self.ipfs)?;
+        let catalog_file = self.get_object(hash)?;
+        let catalog_file_path = catalog_file.path()?;
+        let catalog = Catalog::load(catalog_file_path.as_path())?;
         self.add_catalog(catalog);
         Ok(&self.catalogs[&hash])
     }

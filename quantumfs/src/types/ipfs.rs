@@ -17,6 +17,12 @@ impl IpfsHash {
     }
 }
 
+impl AsRef<str> for IpfsHash {
+    fn as_ref(&self) -> &str {
+        self.hash.as_str()
+    }
+}
+
 impl fmt::Display for IpfsHash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.hash)

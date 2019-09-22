@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use web3::transports::Http;
 use web3::types::Address;
 use web3::Web3;
@@ -13,15 +15,17 @@ pub struct Repository {
     manifest: Manifest,
     web3: Web3<Http>,
     ipfs_data: (String, u16),
+    cache_dir: PathBuf,
 }
 
 impl Repository {
-    pub fn new(client_address: Address, contract_address: Address,
+    pub fn new(client_address: Address, contract_address: Address, cache_dir: &Path,
                web3_url: &str, ipfs_server: &str, ipfs_port: u16) -> Self {
         Self {
             manifest: Manifest::new(client_address, contract_address, web3_url),
             web3: ethereum::get_web3(web3_url),
             ipfs_data: (ipfs_server.to_string(), ipfs_port),
+            cache_dir: PathBuf::from(cache_dir),
         }
     }
 
@@ -40,12 +44,12 @@ impl Repository {
 
     pub fn load_revision(&mut self, revision_number: u128) -> Result<Revision, QFSError> {
         let tag = self.fetch_revision_tag(revision_number)?;
-        Ok(Revision::new(self.get_ipfs(), tag))
+        Ok(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path()))
     }
 
     pub fn load_current_revision(&mut self) -> Result<Revision, QFSError> {
         let tag = self.fetch_last_revision_tag()?;
-        Ok(Revision::new(self.get_ipfs(), tag))
+        Ok(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path()))
     }
 
     pub fn create_revision(&'static mut self) -> Result<Revision, QFSError> {
@@ -54,10 +58,10 @@ impl Repository {
             (current_revision_tag.hash().clone(), current_revision_tag.revision())
         };
         match revision {
-            0 => Revision::genesis(self.get_ipfs()),
+            0 => Revision::genesis(self.get_ipfs(), self.cache_dir.as_path()),
             _ => {
                 let tag = RevisionTag::new(&hash, revision + 1);
-                Ok(Revision::new(self.get_ipfs(), tag))
+                Ok(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path()))
             }
         }
     }

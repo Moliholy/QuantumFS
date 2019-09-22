@@ -16,6 +16,7 @@ tempfile = "3.1.0"
 multihash = "0.8.0"
 base58 = "0.1.0"
 path-absolutize = "1.1.6"
+filepath = "0.1.1"
 
 [dependencies.rusqlite]
 version = "0.20.0"

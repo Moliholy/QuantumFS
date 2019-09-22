@@ -4,6 +4,7 @@ extern crate config;
 extern crate fuse_mt;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 extern crate quantumfs;
 extern crate time;
 extern crate web3;

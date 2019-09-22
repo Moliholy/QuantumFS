@@ -1,5 +1,7 @@
-use std::fmt;
-use std::io::Write;
+use std::{fmt, fs};
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OpenFlags};
@@ -44,7 +46,7 @@ impl CatalogReference {
 pub struct Catalog {
     hash: IpfsHash,
     connection: Connection,
-    _file: NamedTempFile,  // this is here just to avoid loosing the file
+    file: File,  // this is here just to avoid loosing the file
 }
 
 unsafe impl Sync for Catalog {
@@ -59,7 +61,7 @@ impl fmt::Debug for Catalog {
 }
 
 impl Catalog {
-    pub fn new(ipfs: &IPFS) -> Result<Self, QFSError> {
+    pub fn new(cache_path: &Path) -> Result<Self, QFSError> {
         let mut tmpfile = NamedTempFile::new().unwrap();
         let connection = Connection::open_with_flags(
             tmpfile.path(),
@@ -79,29 +81,33 @@ impl Catalog {
         };
         database::add_directory_entry(&connection, &root_folder)?;
         tmpfile.flush()?;
-        let file = tmpfile.as_file();
-        let hash = ipfs.add(&file)?;
+        let mut data = Vec::new();
+        tmpfile.as_file().read_to_end(&mut data)?;
+        let hash = ipfs::hash_bytes(&data);
+        let catalog_file_path = cache_path.join(hash.as_str());
+        fs::rename(tmpfile.path(), catalog_file_path.as_path())?;
         let catalog = Self {
             connection,
-            hash,
-            _file: tmpfile,
+            hash: IpfsHash::new(hash.as_str())?,
+            file: File::open(catalog_file_path.as_path())?,
         };
         Ok(catalog)
     }
 
-    pub fn load(hash: &IpfsHash, ipfs: &IPFS) -> Result<Self, QFSError> {
-        let db_bytes = ipfs.fetch(hash)?;
-        let mut tmpfile = NamedTempFile::new().unwrap();
-        tmpfile.write_all(&db_bytes)
-            .map_err(QFSError::from)?;
+    pub fn file(&self) -> &File {
+        return &self.file
+    }
+
+    pub fn load(path: &Path) -> Result<Self, QFSError> {
+        let file_name = path.file_name().unwrap().to_str().unwrap();
         let connection = Connection::open_with_flags(
-            tmpfile.path(),
+            path,
             OpenFlags::default(),
         ).map_err(QFSError::from)?;
         Ok(Self {
-            hash: hash.clone(),
+            hash: IpfsHash::new(file_name)?,
             connection,
-            _file: tmpfile,
+            file: File::open(path)?,
         })
     }
 
@@ -160,18 +166,21 @@ mod tests {
     use crate::models::directoryentry::{DirectoryEntry, flags};
     use crate::operations::ipfs::{self, IPFS};
     use crate::types::ipfs::IpfsHash;
+    use std::path::Path;
 
     #[test]
     fn test_create_catalog_should_work() {
         let ipfs = IPFS::new("127.0.0.1", 5001);
-        let result = Catalog::new(&ipfs);
+        let cache_path = Path::new("/tmp");
+        let result = Catalog::new(cache_path);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_add_entry_should_work() {
         let ipfs = IPFS::new("127.0.0.1", 5001);
-        let catalog = Catalog::new(&ipfs).unwrap();
+        let cache_path = Path::new("/tmp");
+        let catalog = Catalog::new(cache_path).unwrap();
         let path = "/file1";
         let content = "this is file1";
         let dirent = DirectoryEntry {

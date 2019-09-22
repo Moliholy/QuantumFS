@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::Path;
+use std::sync::RwLock;
 
-use fuse_mt::{FileAttr, FilesystemMT, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr, FileType};
+use fuse_mt::{FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr};
+use libc;
 use time::Timespec;
 
 use quantumfs::errors::QFSError;
 use quantumfs::models::repository::Repository;
 use quantumfs::models::revision::Revision;
-use std::sync::RwLock;
 
 const TTL: Timespec = Timespec { sec: 1, nsec: 0 };
 
@@ -48,7 +49,7 @@ impl FilesystemMT for QuantumFS {
                     mtime: Timespec { sec: dirent.mtime, nsec: 0 },
                     ctime: Timespec { sec: dirent.mtime, nsec: 0 },
                     crtime: Timespec { sec: dirent.mtime, nsec: 0 },
-                    kind: kind,
+                    kind,
                     perm: 0,
                     nlink: 1,
                     uid: 1,
@@ -60,16 +61,28 @@ impl FilesystemMT for QuantumFS {
         }
     }
 
-    fn utimens(&self, _req: RequestInfo, _path: &Path, _fh: Option<u64>, _atime: Option<Timespec>, _mtime: Option<Timespec>) -> ResultEmpty {
-        unimplemented!()
+    fn readlink(&self, _req: RequestInfo, path: &Path) -> ResultData {
+        match self.revision.write().unwrap().lookup(path.to_str().unwrap()) {
+            Err(error) => Err(1),
+            Ok(dirent) => {
+                if dirent.is_symlink() {
+                    Ok(Vec::from(dirent.symlink.as_bytes()))
+                } else {
+                    Err(libc::ENOLINK)
+                }
+            }
+        }
     }
 
-    fn readlink(&self, _req: RequestInfo, _path: &Path) -> ResultData {
-        unimplemented!()
-    }
-
-    fn open(&self, _req: RequestInfo, _path: &Path, _flags: u32) -> ResultOpen {
-        unimplemented!()
+    fn open(&self, _req: RequestInfo, path: &Path, _flags: u32) -> ResultOpen {
+        let path = path.to_str().unwrap();
+        match self.revision.write().unwrap().get_file(path) {
+            Err(error) => Err(libc::ENOENT),
+            Ok(file) => {
+                self.opened_files.write().unwrap().insert(path.into(), file);
+                Ok((0, libc::O_RDONLY as u32))
+            }
+        }
     }
 
     fn read(&self, _req: RequestInfo, _path: &Path, _fh: u64, _offset: u64, _size: u32, result: impl FnOnce(Result<&[u8], i32>)) {

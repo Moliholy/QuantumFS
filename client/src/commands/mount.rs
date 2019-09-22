@@ -22,6 +22,7 @@ fn load_repository() -> Repository {
     Repository::new(
         client_address,
         contract_address,
+        "~/.qfs".as_ref(),
         &web3_url,
         &ipfs_server,
         ipfs_port,
