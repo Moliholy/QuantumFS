@@ -8,7 +8,7 @@ lazy_static! {
 }
 
 fn init() -> Config {
-    fs::create_dir_all("~/.qfs/")
+    fs::create_dir_all("~/.qfs/data/")
         .expect("Failure creating the ~/.qfs directory");
     let mut config = Config::default();
     // set default variables first
