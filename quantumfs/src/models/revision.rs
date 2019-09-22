@@ -83,8 +83,9 @@ impl Revision {
         let mut hash = root_catalog_hash.clone();
         loop {
             match self.retrieve_catalog(&hash)?.find_nested_for_path(path) {
-                None => return Ok(self.get_opened_catalog(&hash).unwrap()),
-                Some(nested_reference) => hash = nested_reference.hash().clone()
+                Ok(None) => return Ok(self.get_opened_catalog(&hash).unwrap()),
+                Ok(Some(nested_reference)) => hash = nested_reference.hash().clone(),
+                Err(error) => return Err(error)
             };
         }
     }
@@ -93,7 +94,8 @@ impl Revision {
         let dirent = self.lookup(path)?;
         if dirent.is_directory() {
             let catalog = self.retrieve_catalog_for_path(path)?;
-            return Ok(catalog.list_directory(path));
+            let entries = catalog.list_directory(path)?;
+            return Ok(entries);
         }
         Err(QFSError::new(format!("{} is not a directory", path).as_str()))
     }
