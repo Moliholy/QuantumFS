@@ -47,12 +47,15 @@ impl Repository {
         Ok(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path()))
     }
 
-    pub fn load_current_revision(&mut self) -> Result<Revision, QFSError> {
+    pub fn load_current_revision(&mut self) -> Result<Option<Revision>, QFSError> {
         let tag = self.fetch_last_revision_tag()?;
-        Ok(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path()))
+        if tag.revision() == 0 {
+            return Ok(None);
+        }
+        Ok(Some(Revision::new(self.get_ipfs(), tag, self.cache_dir.as_path())))
     }
 
-    pub fn create_revision(&'static mut self) -> Result<Revision, QFSError> {
+    pub fn create_revision(&mut self) -> Result<Revision, QFSError> {
         let (hash, revision) = {
             let current_revision_tag = self.fetch_last_revision_tag()?;
             (current_revision_tag.hash().clone(), current_revision_tag.revision())

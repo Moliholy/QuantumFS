@@ -16,6 +16,7 @@ mod commands;
 mod fs;
 mod settings;
 mod args;
+mod cache;
 
 fn main() {
     if let Some(_) = ARGS.subcommand_matches("mount") {

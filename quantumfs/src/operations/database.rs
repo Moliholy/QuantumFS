@@ -78,14 +78,13 @@ pub fn create_catalog(connection: &Connection) -> Result<(), QFSError> {
     connection.execute_batch(
         format!(
             "BEGIN; \
-                {} \
-                {} \
-                {} \
-                END;",
+                {}; \
+                {}; \
+                {}; \
+            COMMIT;",
             CREATE_CATALOG.as_str(), CREATE_INDEX.as_str(), CREATE_NESTED_CATALOGS.as_str()
         ).as_str()
-    )
-        .map_err(QFSError::from)
+    ).map_err(QFSError::from)
 }
 
 pub fn list_nested(connection: &Connection) -> Result<Vec<CatalogReference>, QFSError> {

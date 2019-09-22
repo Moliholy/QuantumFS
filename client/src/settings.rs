@@ -1,15 +1,14 @@
+
 use config::Config;
 
 use crate::args::ARGS;
-use std::fs;
+use crate::cache::CACHE;
 
 lazy_static! {
     pub static ref SETTINGS: Config = init();
 }
 
 fn init() -> Config {
-    fs::create_dir_all("~/.qfs/data/")
-        .expect("Failure creating the ~/.qfs directory");
     let mut config = Config::default();
     // set default variables first
     config
@@ -22,7 +21,9 @@ fn init() -> Config {
             .expect(format!("Error loading the configuration from {}", config_file).as_str());
     } else {
         // load settings in ~/.qfs/settings, if present
-        let file = config::File::with_name("~/.qfs/settings").required(false);
+        let path = CACHE.main_dir().join("settings");
+        let path = path.as_path().to_str().unwrap();
+        let file = config::File::with_name(path).required(false);
         config.merge(file).unwrap();
     }
 

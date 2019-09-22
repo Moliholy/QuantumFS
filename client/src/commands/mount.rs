@@ -5,6 +5,7 @@ use web3::types::Address;
 
 use quantumfs::models::repository::Repository;
 
+use crate::cache::CACHE;
 use crate::fs::QuantumFS;
 use crate::settings::SETTINGS;
 
@@ -22,7 +23,7 @@ fn load_repository() -> Repository {
     Repository::new(
         client_address,
         contract_address,
-        "~/.qfs".as_ref(),
+        CACHE.data_dir().as_path(),
         &web3_url,
         &ipfs_server,
         ipfs_port,

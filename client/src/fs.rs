@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Seek};
@@ -7,7 +6,7 @@ use std::io::SeekFrom::Start;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
-use fuse_mt::{DirectoryEntry, FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir, ResultXattr};
+use fuse_mt::{DirectoryEntry, FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir};
 use libc;
 use time::Timespec;
 
@@ -20,7 +19,6 @@ const TTL: Timespec = Timespec { sec: 1, nsec: 0 };
 
 
 pub struct QuantumFS {
-    repository: RwLock<Repository>,
     opened_files: RwLock<HashMap<PathBuf, File>>,
     revision: RwLock<Revision>,
 }
@@ -72,7 +70,7 @@ impl FilesystemMT for QuantumFS {
 
     fn readlink(&self, _req: RequestInfo, path: &Path) -> ResultData {
         match self.revision.write().unwrap().lookup(path.to_str().unwrap()) {
-            Err(error) => Err(1),
+            Err(_) => Err(libc::ENOENT),
             Ok(dirent) => {
                 if dirent.is_symlink() {
                     Ok(Vec::from(dirent.symlink.as_bytes()))
@@ -85,7 +83,7 @@ impl FilesystemMT for QuantumFS {
 
     fn open(&self, _req: RequestInfo, path: &Path, _flags: u32) -> ResultOpen {
         match self.revision.write().unwrap().get_file(path.to_str().unwrap()) {
-            Err(error) => Err(libc::ENOENT),
+            Err(_) => Err(libc::ENOENT),
             Ok(file) => {
                 self.opened_files.write().unwrap().insert(PathBuf::from(path), file);
                 Ok((0, libc::O_RDONLY as u32))
@@ -97,7 +95,6 @@ impl FilesystemMT for QuantumFS {
         if let Some(mut file) = self.opened_files.read().unwrap().get(path) {
             let size = size as usize;
             let mut buffer = Vec::with_capacity(size);
-            let read = 0u64;
             file.seek(Start(offset)).unwrap();
             file.read_exact(&mut buffer[0..size]).unwrap();
             result(Ok(&buffer));
@@ -128,9 +125,11 @@ impl FilesystemMT for QuantumFS {
 
 impl QuantumFS {
     pub fn new(mut repository: Repository) -> Result<Self, QFSError> {
-        let revision = repository.load_current_revision()?;
+        let revision = match repository.load_current_revision()? {
+            Some(current_revision) => current_revision,
+            None => repository.create_revision()?,
+        };
         Ok(Self {
-            repository: RwLock::new(repository),
             opened_files: RwLock::new(HashMap::new()),
             revision: RwLock::new(revision),
         })

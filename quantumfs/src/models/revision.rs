@@ -126,12 +126,8 @@ impl Revision {
         Ok(file)
     }
 
-    fn cache_path(&self) -> PathBuf {
-        self.cache_dir.join("data")
-    }
-
     fn cache_path_for_hash(&self, hash: &IpfsHash) -> PathBuf {
-        self.cache_path().join(hash.as_ref())
+        self.cache_dir.join(hash.as_ref())
     }
 
     fn get_object_from_cache(&self, hash: &IpfsHash) -> Option<File> {

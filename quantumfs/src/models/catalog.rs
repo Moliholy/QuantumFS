@@ -13,6 +13,8 @@ use crate::operations::{database, ipfs};
 use crate::operations::ipfs::IPFS;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
+use filepath::FilePath;
+use failure::Fail;
 
 #[derive(Debug, Clone)]
 pub struct CatalogReference {
@@ -61,7 +63,7 @@ impl fmt::Debug for Catalog {
 }
 
 impl Catalog {
-    pub fn new(cache_path: &Path) -> Result<Self, QFSError> {
+    fn create_blank_catalog(cache_path: &Path) -> Result<File, QFSError> {
         let mut tmpfile = NamedTempFile::new().unwrap();
         let connection = Connection::open_with_flags(
             tmpfile.path(),
@@ -86,10 +88,23 @@ impl Catalog {
         let hash = ipfs::hash_bytes(&data);
         let catalog_file_path = cache_path.join(hash.as_str());
         fs::rename(tmpfile.path(), catalog_file_path.as_path())?;
+        File::open(catalog_file_path.as_path())
+            .map_err(QFSError::from)
+    }
+
+    pub fn new(cache_path: &Path) -> Result<Self, QFSError> {
+        let file = Self::create_blank_catalog(cache_path)?;
+        let path = file.path()?;
+        let hash_str = path.as_path().file_name() .unwrap().to_str().unwrap();
+        let hash = IpfsHash::new(hash_str)?;
+        let connection = Connection::open_with_flags(
+            path,
+            OpenFlags::default(),
+        ).map_err(QFSError::from)?;
         let catalog = Self {
             connection,
-            hash: IpfsHash::new(hash.as_str())?,
-            file: File::open(catalog_file_path.as_path())?,
+            hash,
+            file,
         };
         Ok(catalog)
     }
