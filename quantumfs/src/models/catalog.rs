@@ -10,11 +10,9 @@ use tempfile::NamedTempFile;
 use crate::errors::QFSError;
 use crate::models::directoryentry::{DirectoryEntry, flags};
 use crate::operations::{database, ipfs};
-use crate::operations::ipfs::IPFS;
 use crate::operations::path;
 use crate::types::ipfs::IpfsHash;
 use filepath::FilePath;
-use failure::Fail;
 
 #[derive(Debug, Clone)]
 pub struct CatalogReference {
@@ -72,11 +70,11 @@ impl Catalog {
         database::create_catalog(&connection)?;
         let root_folder = DirectoryEntry {
             path: IpfsHash::new(ipfs::hash_bytes("/".as_bytes()).as_str()).unwrap(),
-            parent: IpfsHash::new(ipfs::hash_bytes("/".as_bytes()).as_str()).unwrap(),
+            parent: IpfsHash::new(ipfs::hash_bytes("".as_bytes()).as_str()).unwrap(),
             hash: IpfsHash::new(ipfs::hash_bytes(&[]).as_str()).unwrap(),
             flags: flags::DIRECTORY | flags::NESTED_CATALOG_ROOT,
-            size: 0,
-            mode: 0,
+            size: 3,
+            mode: 16877,
             mtime: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
             name: "".to_string(),
             symlink: "".to_string(),

@@ -122,7 +122,7 @@ impl Revision {
         let mut file = File::create(cache_path.as_path())
             .expect(format!("Failure creating a new file in {}", cache_path.to_str().unwrap()).as_str());
         let bytes = self.ipfs.fetch(hash)?;
-        file.write_all(bytes.as_ref());
+        file.write_all(bytes.as_ref())?;
         Ok(file)
     }
 

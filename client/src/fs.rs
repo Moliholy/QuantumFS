@@ -6,7 +6,7 @@ use std::io::SeekFrom::Start;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
-use fuse_mt::{DirectoryEntry, FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultOpen, ResultReaddir};
+use fuse_mt::{DirectoryEntry, FileAttr, FilesystemMT, FileType, RequestInfo, ResultData, ResultEmpty, ResultEntry, ResultOpen, ResultReaddir, ResultStatfs, Statfs};
 use libc;
 use time::Timespec;
 
@@ -15,7 +15,7 @@ use quantumfs::models::directoryentry::DirectoryEntry as QFSDirent;
 use quantumfs::models::repository::Repository;
 use quantumfs::models::revision::Revision;
 
-const TTL: Timespec = Timespec { sec: 1, nsec: 0 };
+const TTL: Timespec = Timespec { sec: 240, nsec: 0 };
 
 
 pub struct QuantumFS {
@@ -42,9 +42,9 @@ impl FilesystemMT for QuantumFS {
         self.opened_files.write().unwrap().clear();
     }
 
-    fn getattr(&self, _req: RequestInfo, _path: &Path, _fh: Option<u64>) -> Result<(Timespec, FileAttr), i32> {
+    fn getattr(&self, _req: RequestInfo, path: &Path, _fh: Option<u64>) -> ResultEntry {
         let mut revision = self.revision.write().unwrap();
-        let path = _path.to_str().unwrap();
+        let path = path.to_str().unwrap();
         match revision.lookup(path) {
             Err(_) => Err(1),
             Ok(dirent) => {
@@ -57,16 +57,18 @@ impl FilesystemMT for QuantumFS {
                     ctime: Timespec { sec: dirent.mtime, nsec: 0 },
                     crtime: Timespec { sec: dirent.mtime, nsec: 0 },
                     kind,
-                    perm: 0,
+                    perm: dirent.mode as u16,
                     nlink: 1,
-                    uid: 1,
-                    gid: 1,
+                    uid: users::get_current_uid(),
+                    gid: users::get_current_gid(),
                     rdev: 1,
                     flags: dirent.flags as u32,
                 }))
             }
         }
     }
+
+
 
     fn readlink(&self, _req: RequestInfo, path: &Path) -> ResultData {
         match self.revision.write().unwrap().lookup(path.to_str().unwrap()) {
@@ -108,6 +110,19 @@ impl FilesystemMT for QuantumFS {
         Ok(())
     }
 
+    fn opendir(&self, _req: RequestInfo, path: &Path, _flags: u32) -> ResultOpen {
+        let mut revision = self.revision.write().unwrap();
+        match revision.lookup(path.to_str().unwrap()) {
+            Err(_) => Err(1),
+            Ok(dirent) => {
+                if dirent.is_directory() {
+                    return Ok((0, dirent.flags as u32))
+                }
+                Err(libc::ENOENT)
+            }
+        }
+    }
+
     fn readdir(&self, _req: RequestInfo, path: &Path, _fh: u64) -> ResultReaddir {
         match self.revision.write().unwrap().list_directory(path.to_str().unwrap()) {
             Err(_) => Err(libc::ENOENT),
@@ -120,6 +135,19 @@ impl FilesystemMT for QuantumFS {
                 }).collect())
             }
         }
+    }
+
+    fn statfs(&self, _req: RequestInfo, path: &Path) -> ResultStatfs {
+        Ok(Statfs {
+            blocks: 0,
+            bfree: 0,
+            bavail: 0,
+            files: 0,
+            ffree: 0,
+            bsize: 512,
+            namelen: 0,
+            frsize: 512
+        })
     }
 }
 

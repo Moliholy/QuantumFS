@@ -9,6 +9,7 @@ extern crate quantumfs;
 extern crate time;
 extern crate web3;
 extern crate yaml_rust;
+extern crate users;
 
 use crate::args::ARGS;
 
